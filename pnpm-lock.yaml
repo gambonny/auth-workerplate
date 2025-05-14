@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@gambonny/cflo':
+        specifier: ^0.0.1
+        version: 0.0.1
       hono:
         specifier: ^4.7.9
         version: 4.7.9
@@ -280,6 +283,9 @@ packages:
   '@fastify/busboy@2.1.1':
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
+
+  '@gambonny/cflo@0.0.1':
+    resolution: {integrity: sha512-5gd4pmT2L6+DAfoDmZWiu1p7ZyjnPXVm6TF1L9f3CzHkMRsX/wKZGHfQDRbObuCcCSqd1rpd5PFohPM+W4UGOw==}
 
   '@img/sharp-darwin-arm64@0.33.5':
     resolution: {integrity: sha512-UT4p+iz/2H4twwAoLCqfA9UH5pI6DggwKEGuaPy7nCVQ8ZsiY5PIcrRvD1DzuY3qYL07NtIQcWnBSY/heikIFQ==}
@@ -715,6 +721,8 @@ snapshots:
     optional: true
 
   '@fastify/busboy@2.1.1': {}
+
+  '@gambonny/cflo@0.0.1': {}
 
   '@img/sharp-darwin-arm64@0.33.5':
     optionalDependencies:
