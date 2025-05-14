@@ -1,0 +1,3 @@
+name: Signup -- Workers Dev
+method: POST
+url: https://auth-workerplate.gambonny.workers.dev/signup
