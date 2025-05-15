@@ -1,8 +1,9 @@
+import { env } from "cloudflare:workers"
 import { Hono } from "hono"
 import { createLogger } from "@gambonny/cflo"
 
 const logger = createLogger({
-	level: "info",
+	level: env.LOG_LEVEL,
 	format: "pretty",
 })
 
