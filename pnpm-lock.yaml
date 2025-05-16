@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@gambonny/cflo':
-        specifier: ^0.0.3
-        version: 0.0.3
+        specifier: ^0.0.4
+        version: 0.0.4
       hono:
         specifier: ^4.7.9
         version: 4.7.9
@@ -284,8 +284,8 @@ packages:
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
 
-  '@gambonny/cflo@0.0.3':
-    resolution: {integrity: sha512-o47LUzw9/KRpfFFcBfQ7e8udSi3B4FwkaybvH0+O4NS5VU2jaEDi64eBnb8A6D2qiL7sqOeP9J25HitwcC3wXA==}
+  '@gambonny/cflo@0.0.4':
+    resolution: {integrity: sha512-d0d9GGukOL9QXG3SunVQZz0lkoNbGzqjk0mbFLAeA2xxZ3qZupgOQNShCucC0w3O4ZfMhFDZO4lUifim8Lwsuw==}
 
   '@img/sharp-darwin-arm64@0.33.5':
     resolution: {integrity: sha512-UT4p+iz/2H4twwAoLCqfA9UH5pI6DggwKEGuaPy7nCVQ8ZsiY5PIcrRvD1DzuY3qYL07NtIQcWnBSY/heikIFQ==}
@@ -730,7 +730,7 @@ snapshots:
 
   '@fastify/busboy@2.1.1': {}
 
-  '@gambonny/cflo@0.0.3':
+  '@gambonny/cflo@0.0.4':
     dependencies:
       valibot: 1.1.0
     transitivePeerDependencies:
