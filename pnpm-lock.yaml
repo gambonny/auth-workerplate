@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@gambonny/cflo':
-        specifier: ^0.0.2
-        version: 0.0.2
+        specifier: ^0.0.3
+        version: 0.0.3
       hono:
         specifier: ^4.7.9
         version: 4.7.9
@@ -284,8 +284,8 @@ packages:
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
 
-  '@gambonny/cflo@0.0.2':
-    resolution: {integrity: sha512-2J0NZFe1Vb10gLXFh3J0ziK13dlHcAqSou2zlkKUuCdIGBjhw7rdyIoqC0mWFoi9mWh7PP8rZT19JZug0+5Hsw==}
+  '@gambonny/cflo@0.0.3':
+    resolution: {integrity: sha512-o47LUzw9/KRpfFFcBfQ7e8udSi3B4FwkaybvH0+O4NS5VU2jaEDi64eBnb8A6D2qiL7sqOeP9J25HitwcC3wXA==}
 
   '@img/sharp-darwin-arm64@0.33.5':
     resolution: {integrity: sha512-UT4p+iz/2H4twwAoLCqfA9UH5pI6DggwKEGuaPy7nCVQ8ZsiY5PIcrRvD1DzuY3qYL07NtIQcWnBSY/heikIFQ==}
@@ -541,6 +541,14 @@ packages:
   unenv@2.0.0-rc.15:
     resolution: {integrity: sha512-J/rEIZU8w6FOfLNz/hNKsnY+fFHWnu9MH4yRbSZF3xbbGHovcetXPs7sD+9p8L6CeNC//I9bhRYAOsBt2u7/OA==}
 
+  valibot@1.1.0:
+    resolution: {integrity: sha512-Nk8lX30Qhu+9txPYTwM0cFlWLdPFsFr6LblzqIySfbZph9+BFsAHsNvHOymEviUepeIW6KFHzpX8TKhbptBXXw==}
+    peerDependencies:
+      typescript: '>=5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   workerd@1.20250508.0:
     resolution: {integrity: sha512-ffLxe7dXSuGoA6jb3Qx2SClIV1aLHfJQ6RhGhzYHjQgv7dL6fdUOSIIGgzmu2mRKs+WFSujp6c8WgKquco6w3w==}
     engines: {node: '>=16'}
@@ -722,7 +730,11 @@ snapshots:
 
   '@fastify/busboy@2.1.1': {}
 
-  '@gambonny/cflo@0.0.2': {}
+  '@gambonny/cflo@0.0.3':
+    dependencies:
+      valibot: 1.1.0
+    transitivePeerDependencies:
+      - typescript
 
   '@img/sharp-darwin-arm64@0.33.5':
     optionalDependencies:
@@ -985,6 +997,8 @@ snapshots:
       ohash: 2.0.11
       pathe: 2.0.3
       ufo: 1.6.1
+
+  valibot@1.1.0: {}
 
   workerd@1.20250508.0:
     optionalDependencies:
