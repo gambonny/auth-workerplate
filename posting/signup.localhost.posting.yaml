@@ -1,3 +1,6 @@
 name: Signup -- localhost
 method: POST
 url: http://localhost:8787/signup
+headers:
+- name: x-thread-id
+  value: '1111'

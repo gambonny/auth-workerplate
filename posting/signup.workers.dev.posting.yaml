@@ -1,3 +1,6 @@
 name: Signup -- Workers Dev
 method: POST
 url: https://auth-workerplate.gambonny.workers.dev/signup
+headers:
+- name: x-thread-id
+  value: '11111'
