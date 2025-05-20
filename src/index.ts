@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers"
 import { Hono } from "hono"
 import { type GetLoggerFn, useLogger } from "@gambonny/cflo"
 
@@ -11,6 +12,7 @@ app.use(
 		format: "json",
 		context: {
 			appName: "auth-worker",
+			deployId: env.CF_VERSION_METADATA.id,
 		},
 	}),
 )
