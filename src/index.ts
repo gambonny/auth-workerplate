@@ -1,16 +1,28 @@
-import { env } from "cloudflare:workers"
 import { Hono } from "hono"
-import { createLogger } from "@gambonny/cflo"
+import { type GetLoggerFn, useLogger } from "@gambonny/cflo"
 
-const logger = createLogger({
-	level: env.LOG_LEVEL,
-	format: "pretty",
-})
-
-const app = new Hono<{ Bindings: CloudflareBindings }>()
+const app = new Hono<{
+	Bindings: CloudflareBindings
+	Variables: { getLogger: GetLoggerFn }
+}>()
+app.use(
+	useLogger({
+		level: "info",
+		format: "json",
+		context: {
+			appName: "auth-worker",
+		},
+	}),
+)
 
 app.post("/signup", c => {
-	logger.debug("This log should not appear.")
+	const logger = c.var.getLogger({ route: "auth.signup" })
+
+	logger.info("signup:started", {
+		scope: "user.init",
+		event: "signup.started",
+	})
+
 	return c.text("Hello Hono!")
 })
 

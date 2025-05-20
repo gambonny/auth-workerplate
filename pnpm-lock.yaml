@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@gambonny/cflo':
-        specifier: ^0.0.4
-        version: 0.0.4
+        specifier: ^0.0.13
+        version: 0.0.13(hono@4.7.10)
       hono:
-        specifier: ^4.7.9
-        version: 4.7.9
+        specifier: ^4.7.10
+        version: 4.7.10
     devDependencies:
       '@biomejs/biome':
         specifier: 1.9.4
@@ -284,8 +284,13 @@ packages:
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
 
-  '@gambonny/cflo@0.0.4':
-    resolution: {integrity: sha512-d0d9GGukOL9QXG3SunVQZz0lkoNbGzqjk0mbFLAeA2xxZ3qZupgOQNShCucC0w3O4ZfMhFDZO4lUifim8Lwsuw==}
+  '@gambonny/cflo@0.0.13':
+    resolution: {integrity: sha512-tqwB8MxSytsgwdIoLnLGNUzCFjyVZZC9dxsrBO7mXlxy222chpWr40SCw58RznsyMudgVMya2HnwAnh5UK3P3A==}
+    peerDependencies:
+      hono: ^4.7.10
+    peerDependenciesMeta:
+      hono:
+        optional: true
 
   '@img/sharp-darwin-arm64@0.33.5':
     resolution: {integrity: sha512-UT4p+iz/2H4twwAoLCqfA9UH5pI6DggwKEGuaPy7nCVQ8ZsiY5PIcrRvD1DzuY3qYL07NtIQcWnBSY/heikIFQ==}
@@ -468,8 +473,8 @@ packages:
   glob-to-regexp@0.4.1:
     resolution: {integrity: sha512-lkX1HJXwyMcprw/5YUZc2s7DrpAiHB21/V+E1rHUrVNokkvB6bqMzT0VfV6/86ZNabt1k14YOIaT7nDvOX3Iiw==}
 
-  hono@4.7.9:
-    resolution: {integrity: sha512-/EsCoR5h7N4yu01TDu9GMCCJa6ZLk5ZJIWFFGNawAXmd1Tp53+Wir4xm0D2X19bbykWUlzQG0+BvPAji6p9E8Q==}
+  hono@4.7.10:
+    resolution: {integrity: sha512-QkACju9MiN59CKSY5JsGZCYmPZkA6sIW6OFCUp7qDjZu6S6KHtJHhAc9Uy9mV9F8PJ1/HQ3ybZF2yjCa/73fvQ==}
     engines: {node: '>=16.9.0'}
 
   is-arrayish@0.3.2:
@@ -730,9 +735,11 @@ snapshots:
 
   '@fastify/busboy@2.1.1': {}
 
-  '@gambonny/cflo@0.0.4':
+  '@gambonny/cflo@0.0.13(hono@4.7.10)':
     dependencies:
       valibot: 1.1.0
+    optionalDependencies:
+      hono: 4.7.10
     transitivePeerDependencies:
       - typescript
 
@@ -901,7 +908,7 @@ snapshots:
 
   glob-to-regexp@0.4.1: {}
 
-  hono@4.7.9: {}
+  hono@4.7.10: {}
 
   is-arrayish@0.3.2:
     optional: true
