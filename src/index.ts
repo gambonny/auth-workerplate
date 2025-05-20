@@ -8,8 +8,8 @@ const app = new Hono<{
 }>()
 app.use(
 	useLogger({
-		level: "info",
-		format: "json",
+		level: env.LOG_LEVEL,
+		format: env.LOG_FORMAT,
 		context: {
 			appName: "auth-worker",
 			deployId: env.CF_VERSION_METADATA.id,
