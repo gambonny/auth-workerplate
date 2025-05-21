@@ -5,7 +5,7 @@ import { Hono } from "hono"
 import { type GetLoggerFn, useLogger } from "@gambonny/cflo"
 import { requireThread } from "./middlewares"
 import { signupContract } from "./contracts"
-import { hashPassword, salt } from "./password-hash"
+import { generateOtp, hashPassword, salt } from "./generator"
 
 const app = new Hono<{
 	Bindings: CloudflareBindings
@@ -58,12 +58,13 @@ app.post(
 
 		const generatedSalt = salt()
 		const passwordHash = await hashPassword(password, generatedSalt)
+		const otp = generateOtp()
 
 		try {
 			await c.env.DB.prepare(
-				" INSERT INTO users (email, password_hash, salt) VALUES (?, ?, ?)",
+				" INSERT INTO users (email, password_hash, salt, otp) VALUES (?, ?, ?, ?)",
 			)
-				.bind(email, passwordHash, generatedSalt)
+				.bind(email, passwordHash, generatedSalt, otp)
 				.run()
 
 			return c.json({ message: "User registered and logged in" }, 201)

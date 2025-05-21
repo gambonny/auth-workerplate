@@ -32,3 +32,9 @@ export function salt(length = 16) {
 	crypto.getRandomValues(array)
 	return Array.from(array, b => b.toString(16).padStart(2, "0")).join("")
 }
+
+export function generateOtp(): string {
+	return Math.floor(Math.random() * 100_000_000)
+		.toString()
+		.padStart(8, "0")
+}
