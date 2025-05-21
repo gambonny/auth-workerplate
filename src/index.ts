@@ -68,7 +68,6 @@ app.post(
 
 			return c.json({ message: "User registered and logged in" }, 201)
 		} catch (err) {
-			console.log("err: ", err)
 			if (err instanceof Error) {
 				if (err.message.includes("UNIQUE constraint failed")) {
 					return c.json({ error: "User already exists" }, 409)
