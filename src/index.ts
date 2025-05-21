@@ -61,20 +61,48 @@ app.post(
 		const otp = generateOtp()
 
 		try {
+			logger.info("preparing:user:registration", {
+				event: "db.insert.started",
+				scope: "db.users",
+				input: { email },
+			})
+
 			await c.env.DB.prepare(
 				" INSERT INTO users (email, password_hash, salt, otp) VALUES (?, ?, ?, ?)",
 			)
 				.bind(email, passwordHash, generatedSalt, otp)
 				.run()
 
+			logger.info("user:registered", {
+				event: "db.insert.success",
+				scope: "db.users",
+				input: { email },
+			})
+
 			return c.json({ message: "User registered and logged in" }, 201)
 		} catch (err) {
 			if (err instanceof Error) {
 				if (err.message.includes("UNIQUE constraint failed")) {
+					logger.warn("user:registration:failed:email:taken", {
+						event: "db.insert.conflict",
+						scope: "db.users",
+						reason: "email taken",
+						input: { email },
+					})
+
 					return c.json({ error: "User already exists" }, 409)
 				}
 			}
-			return c.json({ error: String(err) }, 500)
+
+			const errorMessage = err instanceof Error ? err.message : String(err)
+
+			logger.error("user:registration:error", {
+				event: "signup.error",
+				scope: "db.users",
+				error: errorMessage,
+			})
+
+			return c.json({ error: errorMessage }, 500)
 		}
 	},
 )
