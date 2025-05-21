@@ -5,11 +5,13 @@ import { Hono } from "hono"
 import { type GetLoggerFn, useLogger } from "@gambonny/cflo"
 import { requireThread } from "./middlewares"
 import { signupContract } from "./contracts"
+import { hashPassword, salt } from "./password-hash"
 
 const app = new Hono<{
 	Bindings: CloudflareBindings
 	Variables: { thread: string; getLogger: GetLoggerFn }
 }>()
+
 app.use(requireThread)
 
 app.use(async (c, next) => {
@@ -44,8 +46,8 @@ app.post(
 
 		return c.json({ status: "error", error: "Invalid input" }, 400)
 	}),
-	c => {
-		const { email } = c.req.valid("form")
+	async c => {
+		const { email, password } = c.req.valid("form")
 		const logger = c.var.getLogger({ route: "auth.signup.handler" })
 
 		logger.info("signup:started", {
@@ -54,7 +56,26 @@ app.post(
 			input: { email },
 		})
 
-		return c.text("Hello Hono!")
+		const generatedSalt = salt()
+		const passwordHash = await hashPassword(password, generatedSalt)
+
+		try {
+			await c.env.DB.prepare(
+				" INSERT INTO users (email, password_hash, salt) VALUES (?, ?, ?)",
+			)
+				.bind(email, passwordHash, generatedSalt)
+				.run()
+
+			return c.json({ message: "User registered and logged in" }, 201)
+		} catch (err) {
+			console.log("err: ", err)
+			if (err instanceof Error) {
+				if (err.message.includes("UNIQUE constraint failed")) {
+					return c.json({ error: "User already exists" }, 409)
+				}
+			}
+			return c.json({ error: String(err) }, 500)
+		}
 	},
 )
 
