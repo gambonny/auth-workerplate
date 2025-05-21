@@ -56,12 +56,17 @@ app.post(
 			input: { email },
 		})
 
-		const generatedSalt = salt()
-		const passwordHash = await hashPassword(password, generatedSalt)
-		const otp = generateOtp()
-
 		try {
-			logger.info("preparing:user:registration", {
+			logger.debug("generating:credentials", {
+				event: "crypto.init",
+				scope: "crypto.password",
+			})
+
+			const generatedSalt = salt()
+			const passwordHash = await hashPassword(password, generatedSalt)
+			const otp = generateOtp()
+
+			logger.debug("preparing:user:registration", {
 				event: "db.insert.started",
 				scope: "db.users",
 				input: { email },
