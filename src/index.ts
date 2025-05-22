@@ -146,7 +146,10 @@ app.post(
 				createdAt: new Date().toISOString(),
 			})
 
-			return c.json({ message: "User registered" }, 201)
+			return c.json(
+				{ message: "User registered, email with otp has been sent" },
+				201,
+			)
 		} catch (err) {
 			if (err instanceof Error) {
 				if (err.message.includes("UNIQUE constraint failed")) {
