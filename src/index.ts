@@ -13,20 +13,18 @@ import {
 	type WorkflowStep,
 } from "cloudflare:workers"
 import { Resend } from "resend"
+import type {
+	ErrorResponse,
+	SignupWorkflowEnv,
+	SignupWorkflowParams,
+	SuccessResponse,
+} from "./types"
 
-type Env = {
-	THIS_WORKFLOW: Workflow
-	RESEND: string
-	DB: D1Database
-}
-
-type Params = {
-	email: string
-	otp: string
-}
-
-export class SignupWorkflow extends WorkflowEntrypoint<Env, Params> {
-	async run(event: WorkflowEvent<Params>, step: WorkflowStep) {
+export class SignupWorkflow extends WorkflowEntrypoint<
+	SignupWorkflowEnv,
+	SignupWorkflowParams
+> {
+	async run(event: WorkflowEvent<SignupWorkflowParams>, step: WorkflowStep) {
 		const { email, otp } = event.payload
 
 		// Step 1: Send OTP email
@@ -115,11 +113,11 @@ app.post(
 				status: "error",
 				error: "Invalid input",
 				issues: v.flatten(validation.issues).nested,
-			},
+			} satisfies ErrorResponse,
 			400,
 		)
 	}),
-	async c => {
+	async (c): Promise<Response> => {
 		const { email, password } = c.req.valid("form")
 		const logger = c.var.getLogger({ route: "auth.signup.handler" })
 
@@ -171,7 +169,7 @@ app.post(
 					data: {
 						message: "User registered, email with otp has been sent",
 					},
-				},
+				} satisfies SuccessResponse,
 				201,
 			)
 		} catch (err) {
@@ -189,7 +187,7 @@ app.post(
 							status: "error",
 							error: "Invalid input",
 							issues: { email: ["User already exists"] },
-						},
+						} satisfies ErrorResponse,
 						409,
 					)
 				}
@@ -203,7 +201,10 @@ app.post(
 				error: errorMessage,
 			})
 
-			return c.json({ status: "error", error: errorMessage }, 500)
+			return c.json(
+				{ status: "error", error: errorMessage } satisfies ErrorResponse,
+				500,
+			)
 		}
 	},
 )
