@@ -19,5 +19,19 @@
       "database_name": "user_auth_db",
       "database_id": "1d8818b8-050e-4c0e-b988-0bea1dd95761"
     }
+  ],
+  "workflows": [
+    {
+      "name": "signup-workflow",
+      "binding": "SIGNUP_WFW",
+      "class_name": "SignupWorkflow"
+    }
+  ],
+  "secrets_store_secrets": [
+    {
+      "binding": "RESEND",
+      "store_id": "d5b15a8e38d64f5a9fed59bb2f18881f",
+      "secret_name": "RESEND_API_KEY"
+    }
   ]
 }

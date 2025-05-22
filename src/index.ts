@@ -1,3 +1,11 @@
+import { Resend } from "resend"
+
+import {
+	WorkflowEntrypoint,
+	type WorkflowStep,
+	type WorkflowEvent,
+} from "cloudflare:workers"
+
 import { env } from "cloudflare:workers"
 import * as v from "valibot"
 import { validator } from "hono/validator"
@@ -6,6 +14,54 @@ import { type GetLoggerFn, useLogger } from "@gambonny/cflo"
 import { requireThread } from "./middlewares"
 import { signupContract } from "./contracts"
 import { generateOtp, hashPassword, salt } from "./generator"
+
+type Env = {
+	THIS_WORKFLOW: Workflow
+}
+
+type Params = {
+	email: string
+	otp: string
+	createdAt: string
+}
+
+export class SignupWorkflow extends WorkflowEntrypoint<Env, Params> {
+	async run(event: WorkflowEvent<Params>, step: WorkflowStep) {
+		const { email, otp } = event.payload
+
+		// Step 1: Send OTP email
+		await step.do("send-otp-email", async () => {
+			const resend = new Resend(await env.RESEND.get())
+			resend.emails.send({
+				from: "gambonny@gmail.com",
+				to: email,
+				subject: "Your one-time password",
+				html: `<p>Your OTP is <strong>${otp}</strong></p>`,
+			})
+		})
+
+		// // Step 2: Wait for 1 hour
+		// await step.sleep("wait-for-activation", "1 hour")
+		//
+		// // Step 3: Check if user is activated
+		// const isActivated = await step.do("check-activation", async () => {
+		// 	// Implement activation check logic
+		// 	return false // Replace with actual check
+		// })
+		//
+		// if (!isActivated) {
+		// 	// Step 4: Delete unactivated user
+		// 	await step.do("delete-user", async () => {
+		// 		// Implement user deletion logic
+		// 	})
+		// } else {
+		// 	// Step 5: Send welcome email
+		// 	await step.do("send-welcome-email", async () => {
+		// 		// Implement welcome email logic
+		// 	})
+		// }
+	}
+}
 
 const app = new Hono<{
 	Bindings: CloudflareBindings
@@ -84,7 +140,13 @@ app.post(
 				input: { email },
 			})
 
-			return c.json({ message: "User registered and logged in" }, 201)
+			await c.env.SIGNUP_WFW.create({
+				email,
+				otp,
+				createdAt: new Date().toISOString(),
+			})
+
+			return c.json({ message: "User registered" }, 201)
 		} catch (err) {
 			if (err instanceof Error) {
 				if (err.message.includes("UNIQUE constraint failed")) {
