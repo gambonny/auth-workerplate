@@ -35,12 +35,16 @@ export class SignupWorkflow extends WorkflowEntrypoint<Env, Params> {
 			const resend = new Resend(this.env.RESEND)
 			console.info("this.env.RESEND: ", this.env.RESEND)
 			console.info("email from workflow: ", email)
-			resend.emails.send({
-				from: "gambonny@gmail.com",
-				to: email,
-				subject: "Your one-time password",
-				html: `<p>Your OTP is <strong>${otp}</strong></p>`,
-			})
+			try {
+				resend.emails.send({
+					from: "gambonny@gmail.com",
+					to: email,
+					subject: "Your one-time password",
+					html: `<p>Your OTP is <strong>${otp}</strong></p>`,
+				})
+			} catch (e) {
+				console.info(String(e))
+			}
 		})
 
 		return "yes"
