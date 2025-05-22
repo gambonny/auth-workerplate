@@ -1,18 +1,18 @@
 import { env } from "cloudflare:workers"
-import * as v from "valibot"
-import { validator } from "hono/validator"
-import { Hono } from "hono"
 import { type GetLoggerFn, useLogger } from "@gambonny/cflo"
-import { requireThread } from "./middlewares"
+import { Hono } from "hono"
+import { validator } from "hono/validator"
+import * as v from "valibot"
 import { signupContract } from "./contracts"
 import { generateOtp, hashPassword, salt } from "./generator"
+import { requireThread } from "./middlewares"
 
-import { Resend } from "resend"
 import {
 	WorkflowEntrypoint,
-	type WorkflowStep,
 	type WorkflowEvent,
+	type WorkflowStep,
 } from "cloudflare:workers"
+import { Resend } from "resend"
 
 type Env = {
 	THIS_WORKFLOW: Workflow
@@ -36,7 +36,7 @@ export class SignupWorkflow extends WorkflowEntrypoint<Env, Params> {
 			async () => {
 				const resend = new Resend(this.env.RESEND)
 				try {
-					resend.emails.send({
+					await resend.emails.send({
 						from: "send@gambonny.com",
 						to: email,
 						subject: "Your one-time password",
@@ -51,7 +51,7 @@ export class SignupWorkflow extends WorkflowEntrypoint<Env, Params> {
 		// Step 2: Wait for 1 minute
 		await step.sleep("wait-for-activation", "1 minute")
 
-		// // Step 3: Check if user is activated
+		// Step 3: Check if user is activated
 		const isUserActive = await step.do("check-activation", async () => {
 			const result = await this.env.DB.prepare(
 				"SELECT activated from users WHERE email = ?",
@@ -110,7 +110,14 @@ app.post(
 			issues: v.flatten(validation.issues).nested,
 		})
 
-		return c.json({ status: "error", error: "Invalid input" }, 400)
+		return c.json(
+			{
+				status: "error",
+				error: "Invalid input",
+				issues: v.flatten(validation.issues).nested,
+			},
+			400,
+		)
 	}),
 	async c => {
 		const { email, password } = c.req.valid("form")
@@ -153,13 +160,18 @@ app.post(
 			const workflow = await c.env.SIGNUP_WFW.create({ params: { email, otp } })
 
 			logger.debug("workflow:created", {
-				event: "worflow.created",
+				event: "workflow.created",
 				scope: "db.users",
 				workflow,
 			})
 
 			return c.json(
-				{ message: "User registered, email with otp has been sent" },
+				{
+					status: "success",
+					data: {
+						message: "User registered, email with otp has been sent",
+					},
+				},
 				201,
 			)
 		} catch (err) {
@@ -172,7 +184,14 @@ app.post(
 						input: { email },
 					})
 
-					return c.json({ error: "User already exists" }, 409)
+					return c.json(
+						{
+							status: "error",
+							error: "Invalid input",
+							issues: { email: ["User already exists"] },
+						},
+						409,
+					)
 				}
 			}
 
@@ -184,7 +203,7 @@ app.post(
 				error: errorMessage,
 			})
 
-			return c.json({ error: errorMessage }, 500)
+			return c.json({ status: "error", error: errorMessage }, 500)
 		}
 	},
 )
