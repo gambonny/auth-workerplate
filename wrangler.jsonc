@@ -26,12 +26,5 @@
       "binding": "SIGNUP_WFW",
       "class_name": "SignupWorkflow"
     }
-  ],
-  "secrets_store_secrets": [
-    {
-      "binding": "RESEND",
-      "store_id": "d5b15a8e38d64f5a9fed59bb2f18881f",
-      "secret_name": "RESEND_API_KEY"
-    }
   ]
 }
