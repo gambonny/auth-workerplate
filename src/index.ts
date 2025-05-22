@@ -7,6 +7,13 @@ import { requireThread } from "./middlewares"
 import { signupContract } from "./contracts"
 import { generateOtp, hashPassword, salt } from "./generator"
 
+import { Resend } from "resend"
+import {
+	WorkflowEntrypoint,
+	type WorkflowStep,
+	type WorkflowEvent,
+} from "cloudflare:workers"
+
 const app = new Hono<{
 	Bindings: CloudflareBindings
 	Variables: { thread: string; getLogger: GetLoggerFn }
@@ -73,7 +80,7 @@ app.post(
 			})
 
 			await c.env.DB.prepare(
-				" INSERT INTO users (email, password_hash, salt, otp) VALUES (?, ?, ?, ?)",
+				"INSERT INTO users (email, password_hash, salt, otp) VALUES (?, ?, ?, ?)",
 			)
 				.bind(email, passwordHash, generatedSalt, otp)
 				.run()
@@ -84,13 +91,7 @@ app.post(
 				input: { email },
 			})
 
-			const workflow = await c.env.SIGNUP_WFW.create({
-				params: {
-					email,
-					otp,
-					createdAt: new Date().toISOString(),
-				},
-			})
+			const workflow = await c.env.SIGNUP_WFW.create({ params: { email, otp } })
 
 			logger.debug("workflow:created", {
 				event: "worflow.created",
@@ -129,6 +130,63 @@ app.post(
 	},
 )
 
-export default app
+type Env = {
+	THIS_WORKFLOW: Workflow
+	RESEND: string
+	DB: D1Database
+}
 
-export { SignupWorkflow } from "../workflows/signup.workflow"
+type Params = {
+	email: string
+	otp: string
+}
+
+export class SignupWorkflow extends WorkflowEntrypoint<Env, Params> {
+	async run(event: WorkflowEvent<Params>, step: WorkflowStep) {
+		const { email, otp } = event.payload
+
+		// Step 1: Send OTP email
+		await step.do(
+			"send-otp-email",
+			{ retries: { limit: 1, delay: 0 } },
+			async () => {
+				const resend = new Resend(this.env.RESEND)
+				try {
+					resend.emails.send({
+						from: "send@gambonny.com",
+						to: email,
+						subject: "Your one-time password",
+						html: `<p>Your OTP is <strong>${otp}</strong></p>`,
+					})
+				} catch (e) {
+					console.error(String(e))
+				}
+			},
+		)
+
+		// Step 2: Wait for 1 minute
+		await step.sleep("wait-for-activation", "1 minute")
+
+		// // Step 3: Check if user is activated
+		const isUserActive = await step.do("check-activation", async () => {
+			const result = await this.env.DB.prepare(
+				"SELECT activated from users WHERE email = ?",
+			)
+				.bind(email)
+				.first<{ activated: number }>()
+
+			return result?.activated ?? 0
+		})
+
+		if (!isUserActive) {
+			// Step 4: Delete unactivated user
+			await step.do("delete-user", async () => {
+				await this.env.DB.prepare("DELETE from users WHERE email = ?")
+					.bind(email)
+					.run()
+			})
+		}
+	}
+}
+
+export default app
