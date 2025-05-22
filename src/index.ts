@@ -1,11 +1,3 @@
-import { Resend } from "resend"
-
-import {
-	WorkflowEntrypoint,
-	type WorkflowStep,
-	type WorkflowEvent,
-} from "cloudflare:workers"
-
 import { env } from "cloudflare:workers"
 import * as v from "valibot"
 import { validator } from "hono/validator"
@@ -14,63 +6,6 @@ import { type GetLoggerFn, useLogger } from "@gambonny/cflo"
 import { requireThread } from "./middlewares"
 import { signupContract } from "./contracts"
 import { generateOtp, hashPassword, salt } from "./generator"
-
-type Env = {
-	THIS_WORKFLOW: Workflow
-	RESEND: string
-}
-
-type Params = {
-	email: string
-	otp: string
-	createdAt: string
-}
-
-export class SignupWorkflow extends WorkflowEntrypoint<Env, Params> {
-	async run(event: WorkflowEvent<Params>, step: WorkflowStep) {
-		const { email, otp } = event.payload
-
-		// Step 1: Send OTP email
-		await step.do("send-otp-email", async () => {
-			const resend = new Resend(this.env.RESEND)
-			console.info("this.env.RESEND: ", this.env.RESEND)
-			console.info("email from workflow: ", email)
-			try {
-				resend.emails.send({
-					from: "jgambax@gmail.com",
-					to: email,
-					subject: "Your one-time password",
-					html: `<p>Your OTP is <strong>${otp}</strong></p>`,
-				})
-			} catch (e) {
-				console.info(String(e))
-			}
-		})
-
-		return "yes"
-
-		// // Step 2: Wait for 1 hour
-		// await step.sleep("wait-for-activation", "1 hour")
-		//
-		// // Step 3: Check if user is activated
-		// const isActivated = await step.do("check-activation", async () => {
-		// 	// Implement activation check logic
-		// 	return false // Replace with actual check
-		// })
-		//
-		// if (!isActivated) {
-		// 	// Step 4: Delete unactivated user
-		// 	await step.do("delete-user", async () => {
-		// 		// Implement user deletion logic
-		// 	})
-		// } else {
-		// 	// Step 5: Send welcome email
-		// 	await step.do("send-welcome-email", async () => {
-		// 		// Implement welcome email logic
-		// 	})
-		// }
-	}
-}
 
 const app = new Hono<{
 	Bindings: CloudflareBindings
@@ -149,7 +84,7 @@ app.post(
 				input: { email },
 			})
 
-			const result = await c.env.SIGNUP_WFW.create({
+			const workflow = await c.env.SIGNUP_WFW.create({
 				params: {
 					email,
 					otp,
@@ -157,7 +92,11 @@ app.post(
 				},
 			})
 
-			console.info("result from workflow: ", JSON.stringify(result))
+			logger.debug("workflow:created", {
+				event: "worflow.created",
+				scope: "db.users",
+				workflow,
+			})
 
 			return c.json(
 				{ message: "User registered, email with otp has been sent" },
@@ -191,3 +130,5 @@ app.post(
 )
 
 export default app
+
+export { SignupWorkflow } from "../workflows/signup.workflow"
