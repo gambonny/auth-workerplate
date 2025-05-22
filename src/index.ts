@@ -150,12 +150,14 @@ app.post(
 			})
 
 			const result = await c.env.SIGNUP_WFW.create({
-				email,
-				otp,
-				createdAt: new Date().toISOString(),
+				params: {
+					email,
+					otp,
+					createdAt: new Date().toISOString(),
+				},
 			})
 
-			console.info("result from workflow: ", result)
+			console.info("result from workflow: ", JSON.stringify(result))
 
 			return c.json(
 				{ message: "User registered, email with otp has been sent" },
