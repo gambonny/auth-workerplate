@@ -37,7 +37,7 @@ export class SignupWorkflow extends WorkflowEntrypoint<Env, Params> {
 			console.info("email from workflow: ", email)
 			try {
 				resend.emails.send({
-					from: "gambonny@gmail.com",
+					from: "jgambax@gmail.com",
 					to: email,
 					subject: "Your one-time password",
 					html: `<p>Your OTP is <strong>${otp}</strong></p>`,
