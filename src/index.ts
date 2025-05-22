@@ -33,8 +33,8 @@ export class SignupWorkflow extends WorkflowEntrypoint<Env, Params> {
 		// Step 1: Send OTP email
 		await step.do("send-otp-email", async () => {
 			const resend = new Resend(this.env.RESEND)
-			console.log("this.env.RESEND: ", this.env.RESEND)
-			console.log("email from workflow: ", email)
+			console.info("this.env.RESEND: ", this.env.RESEND)
+			console.info("email from workflow: ", email)
 			resend.emails.send({
 				from: "gambonny@gmail.com",
 				to: email,
@@ -42,6 +42,8 @@ export class SignupWorkflow extends WorkflowEntrypoint<Env, Params> {
 				html: `<p>Your OTP is <strong>${otp}</strong></p>`,
 			})
 		})
+
+		return "yes"
 
 		// // Step 2: Wait for 1 hour
 		// await step.sleep("wait-for-activation", "1 hour")
@@ -143,11 +145,13 @@ app.post(
 				input: { email },
 			})
 
-			await c.env.SIGNUP_WFW.create({
+			const result = await c.env.SIGNUP_WFW.create({
 				email,
 				otp,
 				createdAt: new Date().toISOString(),
 			})
+
+			console.info("result from workflow: ", result)
 
 			return c.json(
 				{ message: "User registered, email with otp has been sent" },
