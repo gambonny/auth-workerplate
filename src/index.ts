@@ -17,6 +17,7 @@ import { generateOtp, hashPassword, salt } from "./generator"
 
 type Env = {
 	THIS_WORKFLOW: Workflow
+	RESEND: string
 }
 
 type Params = {
@@ -31,7 +32,7 @@ export class SignupWorkflow extends WorkflowEntrypoint<Env, Params> {
 
 		// Step 1: Send OTP email
 		await step.do("send-otp-email", async () => {
-			const resend = new Resend(await env.RESEND)
+			const resend = new Resend(this.env.RESEND)
 			resend.emails.send({
 				from: "gambonny@gmail.com",
 				to: email,
