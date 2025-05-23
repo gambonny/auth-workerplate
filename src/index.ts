@@ -33,23 +33,15 @@ export class SignupWorkflow extends WorkflowEntrypoint<
 			{ retries: { limit: 1, delay: 0 } },
 			async () => {
 				const resend = new Resend(this.env.RESEND)
-				try {
-					const { error, data } = await resend.emails.send({
-						from: "send@gambonny.com",
-						to: email,
-						subject: "Your one-time password",
-						html: `<p>Your OTP is <strong>${otp}</strong></p>`,
-					})
+				const { error, data } = await resend.emails.send({
+					from: "send@gambonny.com",
+					to: email,
+					subject: "Your one-time password",
+					html: `<p>Your OTP is <strong>${otp}</strong></p>`,
+				})
 
-					if (error) {
-						console.log("error: ", error)
-						throw new Error(error.message)
-					}
-
-					console.log("data: ", data)
-				} catch (e) {
-					console.error(String(e))
-				}
+				if (error) throw new Error(error.message)
+				console.log("data: ", data)
 			},
 		)
 

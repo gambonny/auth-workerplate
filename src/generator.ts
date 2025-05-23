@@ -15,7 +15,7 @@ export async function hashPassword(password: string, salt: string) {
 		{
 			name: "PBKDF2",
 			salt: saltData,
-			iterations: 100000,
+			iterations: 60000,
 			hash: "SHA-256",
 		},
 		keyMaterial,
