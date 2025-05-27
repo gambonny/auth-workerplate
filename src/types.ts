@@ -1,4 +1,9 @@
-import type { UnknownRecord } from "type-fest"
+import type { InferOutput } from "valibot"
+import type {
+	ResponseErrorContract,
+	ResponseResult,
+	ResponseSuccessContract,
+} from "./contracts"
 
 export type SignupWorkflowEnv = {
 	THIS_WORKFLOW: Workflow
@@ -11,13 +16,6 @@ export type SignupWorkflowParams = {
 	otp: string
 }
 
-export type SuccessResponse<T extends object = UnknownRecord> = {
-	status: "success"
-	data: T
-}
-
-export type ErrorResponse = {
-	status: "error"
-	error: string
-	issues?: Record<string, string[] | undefined>
-}
+export type IResponseSuccess = InferOutput<typeof ResponseSuccessContract>
+export type IResponseError = InferOutput<typeof ResponseErrorContract>
+export type IResponseResult = InferOutput<typeof ResponseResult>

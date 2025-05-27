@@ -4,7 +4,13 @@ import { Hono } from "hono"
 import { validator } from "hono/validator"
 import * as v from "valibot"
 import { signupContract } from "./contracts"
-import { generateOtp, hashPassword, salt } from "./generator"
+import {
+	generateOtp,
+	hashPassword,
+	withError,
+	withSuccess,
+	salt,
+} from "./generators"
 import { requireThread } from "./middlewares"
 
 import {
@@ -13,12 +19,7 @@ import {
 	type WorkflowStep,
 } from "cloudflare:workers"
 import { Resend } from "resend"
-import type {
-	ErrorResponse,
-	SignupWorkflowEnv,
-	SignupWorkflowParams,
-	SuccessResponse,
-} from "./types"
+import type { SignupWorkflowEnv, SignupWorkflowParams } from "./types"
 
 export class SignupWorkflow extends WorkflowEntrypoint<
 	SignupWorkflowEnv,
@@ -99,22 +100,16 @@ app.post(
 		}
 
 		const logger = c.var.getLogger({ route: "auth.signup.validator" })
+		const issues = v.flatten(validation.issues).nested
 
 		logger.warn("signup:validation:failed", {
 			event: "validation.failed",
 			scope: "validator.schema",
 			input: validation.output,
-			issues: v.flatten(validation.issues).nested,
+			issues,
 		})
 
-		return c.json(
-			{
-				status: "error",
-				error: "Invalid input",
-				issues: v.flatten(validation.issues).nested,
-			} satisfies ErrorResponse,
-			400,
-		)
+		return c.json(withError("Invalid input", issues), 400)
 	}),
 	async (c): Promise<Response> => {
 		const { email, password } = c.req.valid("form")
@@ -163,12 +158,9 @@ app.post(
 			})
 
 			return c.json(
-				{
-					status: "success",
-					data: {
-						message: "User registered, email with otp has been sent",
-					},
-				} satisfies SuccessResponse,
+				withSuccess({
+					message: "User registered, email with otp has been sent",
+				}),
 				201,
 			)
 		} catch (err) {
@@ -182,11 +174,7 @@ app.post(
 					})
 
 					return c.json(
-						{
-							status: "error",
-							error: "Invalid input",
-							issues: { email: ["User already exists"] },
-						} satisfies ErrorResponse,
+						withError("Invalid input", { email: ["User already exists"] }),
 						409,
 					)
 				}
@@ -200,10 +188,7 @@ app.post(
 				error: errorMessage,
 			})
 
-			return c.json(
-				{ status: "error", error: errorMessage } satisfies ErrorResponse,
-				500,
-			)
+			return c.json(withError(errorMessage), 500)
 		}
 	},
 )

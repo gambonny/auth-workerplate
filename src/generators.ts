@@ -1,3 +1,5 @@
+import type { IResponseSuccess, IResponseError } from "./types"
+
 export async function hashPassword(password: string, salt: string) {
 	const encoder = new TextEncoder()
 	const passwordData = encoder.encode(password)
@@ -38,3 +40,19 @@ export function generateOtp(): string {
 		.toString()
 		.padStart(8, "0")
 }
+
+export const withSuccess = <T extends { message: string }>(
+	data: T,
+): IResponseSuccess => ({
+	status: "success",
+	data,
+})
+
+export const withError = (
+	error: string,
+	issues?: Record<string, string[] | undefined> | undefined,
+): IResponseError => ({
+	status: "error",
+	error,
+	issues,
+})
