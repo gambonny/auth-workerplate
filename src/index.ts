@@ -22,6 +22,7 @@ import {
 } from "cloudflare:workers"
 import { Resend } from "resend"
 import type { SignupWorkflowEnv, SignupWorkflowParams } from "./types"
+import { cors } from "hono/cors"
 
 export class SignupWorkflow extends WorkflowEntrypoint<
   SignupWorkflowEnv,
@@ -78,6 +79,7 @@ const app = new Hono<{
   Variables: { thread: string; getLogger: GetLoggerFn }
 }>()
 
+app.use(cors({ origin: "http://localhost:5173", credentials: true }))
 app.use(secureHeaders())
 app.use(trimTrailingSlash())
 app.use(requireThread)
