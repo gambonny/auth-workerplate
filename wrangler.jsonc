@@ -1,11 +1,11 @@
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "auth-workerplate",
-	"main": "src/index.ts",
-	"compatibility_date": "2025-05-14",
-	"observability": {
-		"enabled": true
-	},
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "auth-workerplate",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-05-14",
+  "observability": {
+    "enabled": true
+  },
   "vars": {
     "LOG_LEVEL": "info",
     "LOG_FORMAT": "json"

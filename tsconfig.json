@@ -5,15 +5,10 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "skipLibCheck": true,
-    "lib": [
-      "ESNext",
-      "DOM"
-    ],
+    "lib": ["ESNext", "DOM"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "esModuleInterop": true,
-    "types": [
-        "worker-configuration.d.ts"
-    ]
-  },
+    "types": ["worker-configuration.d.ts"]
+  }
 }

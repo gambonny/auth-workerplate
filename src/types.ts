@@ -1,19 +1,19 @@
 import type { InferOutput } from "valibot"
 import type {
-	ResponseErrorContract,
-	ResponseResult,
-	ResponseSuccessContract,
+  ResponseErrorContract,
+  ResponseResult,
+  ResponseSuccessContract,
 } from "./contracts"
 
 export type SignupWorkflowEnv = {
-	THIS_WORKFLOW: Workflow
-	RESEND: string
-	DB: D1Database
+  THIS_WORKFLOW: Workflow
+  RESEND: string
+  DB: D1Database
 }
 
 export type SignupWorkflowParams = {
-	email: string
-	otp: string
+  email: string
+  otp: string
 }
 
 export type IResponseSuccess = InferOutput<typeof ResponseSuccessContract>

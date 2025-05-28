@@ -16,18 +16,18 @@ import type { MiddlewareHandler } from "hono"
  * This middleware should run first, before logger setup or route handling.
  */
 export const requireThread: MiddlewareHandler = async (c, next) => {
-	const thread = c.req.header("x-thread-id")
+  const thread = c.req.header("x-thread-id")
 
-	if (!thread) {
-		console.warn("request.rejected", {
-			reason: "missing_thread_id",
-			path: c.req.path,
-		})
+  if (!thread) {
+    console.warn("request.rejected", {
+      reason: "missing_thread_id",
+      path: c.req.path,
+    })
 
-		return c.text("Bad request", 400)
-	}
+    return c.text("Bad request", 400)
+  }
 
-	c.set("thread", thread)
+  c.set("thread", thread)
 
-	await next()
+  await next()
 }
