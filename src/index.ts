@@ -98,7 +98,7 @@ app.use(async (c, next) => {
 
 app.post(
   "/signup",
-  validator("form", async (body, c) => {
+  validator("json", async (body, c) => {
     const validation = v.safeParse(signupContract, body)
 
     if (validation.success) {
@@ -118,7 +118,7 @@ app.post(
     return c.json(withError("Invalid input", issues), 400)
   }),
   async (c): Promise<Response> => {
-    const { email, password } = c.req.valid("form")
+    const { email, password } = c.req.valid("json")
     const logger = c.var.getLogger({ route: "auth.signup.handler" })
 
     logger.info("signup:started", {
