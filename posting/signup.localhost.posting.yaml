@@ -10,6 +10,6 @@ body:
   content_type: application/x-www-form-urlencoded
 headers:
 - name: x-thread-id
-  value: '1111'
+  value: $X_THREAD_ID
 - name: content-type
   value: application/x-www-form-urlencoded
