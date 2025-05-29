@@ -198,4 +198,9 @@ app.post(
     }
   },
 )
+
+app.notFound(c => {
+  return c.text("Not found", 404)
+})
+
 export default app
