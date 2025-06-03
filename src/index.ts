@@ -115,7 +115,7 @@ app.post(
       issues,
     })
 
-    return c.json(withError("Invalid input", issues), 400)
+    return c.json(withError("Input invalid", issues), 400)
   }),
   async (c): Promise<Response> => {
     const { email, password } = c.req.valid("json")
@@ -164,9 +164,7 @@ app.post(
       })
 
       return c.json(
-        withSuccess({
-          message: "User registered, email with otp has been sent",
-        }),
+        withSuccess("User registered, email with otp has been sent"),
         201,
       )
     } catch (err) {

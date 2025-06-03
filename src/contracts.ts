@@ -8,23 +8,28 @@ export const signupContract = v.object({
   ),
 })
 
-export const ResponseSuccessContract = v.object({
-  status: v.literal("success"),
-  data: v.objectWithRest(
-    {
-      message: v.string(),
-    },
-    v.unknown(),
-  ),
+export const BaseResponseContract = v.object({
+  status: v.union([v.literal("success"), v.literal("error")]),
+  message: v.string(),
 })
 
-export const ResponseErrorContract = v.object({
-  status: v.literal("error"),
-  error: v.string(),
-  issues: v.optional(
-    v.record(v.string(), v.undefinedable(v.array(v.string()))),
-  ),
-})
+export const ResponseSuccessContract = v.intersect([
+  BaseResponseContract,
+  v.object({
+    status: v.literal("success"),
+    data: v.optional(v.unknown()),
+  }),
+])
+
+export const ResponseErrorContract = v.intersect([
+  BaseResponseContract,
+  v.object({
+    status: v.literal("error"),
+    issues: v.optional(
+      v.record(v.string(), v.undefinedable(v.array(v.string()))),
+    ),
+  }),
+])
 
 export const ResponseResult = v.union([
   ResponseSuccessContract,

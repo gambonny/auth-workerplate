@@ -41,18 +41,20 @@ export function generateOtp(): string {
     .padStart(8, "0")
 }
 
-export const withSuccess = <T extends { message: string }>(
-  data: T,
+export const withSuccess = <T extends object>(
+  message: string,
+  data?: T,
 ): IResponseSuccess => ({
   status: "success",
-  data,
+  message,
+  ...(data && Object.keys(data).length ? { data } : {}),
 })
 
 export const withError = (
-  error: string,
+  message: string,
   issues?: Record<string, string[] | undefined> | undefined,
 ): IResponseError => ({
   status: "error",
-  error,
+  message,
   issues,
 })
