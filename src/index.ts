@@ -50,7 +50,7 @@ export class SignupWorkflow extends WorkflowEntrypoint<
     // )
 
     // Step 2: Wait for 1 minute
-    await step.sleep("wait-for-activation", "1 minute")
+    await step.sleep("wait-for-activation", "5 seconds")
 
     // Step 3: Check if user is activated
     const isUserActive = await step.do("check-activation", async () => {
