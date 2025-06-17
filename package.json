@@ -1,7 +1,7 @@
 {
   "name": "auth",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --local",
     "deploy": "wrangler deploy --minify",
     "lint": "biome check ./src",
     "lint:fix": "biome check --fix --unsafe ./src",
