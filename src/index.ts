@@ -5,7 +5,7 @@ import { secureHeaders } from "hono/secure-headers"
 import { trimTrailingSlash } from "hono/trailing-slash"
 import { validator } from "hono/validator"
 import * as v from "valibot"
-import { signupContract } from "./contracts"
+import { otpContract, signupContract } from "./contracts"
 import {
   generateOtp,
   hashPassword,
@@ -97,13 +97,75 @@ app.use(async (c, next) => {
 })
 
 app.post(
+  //todo: max 3 tries
+  "/otp/verify",
+  validator("json", async (body, c) => {
+    const validation = v.safeParse(otpContract, body)
+    if (validation.success) return validation.output
+
+    const logger = c.var.getLogger({ route: "auth.otp.validator" })
+    const issues = v.flatten(validation.issues).nested
+
+    logger.warn("otp:validation:failed", {
+      event: "validation.failed",
+      scope: "validator.schema",
+      input: validation.output,
+      issues,
+    })
+
+    return c.json(withError("Input invalid", issues), 400)
+  }),
+  async (c): Promise<Response> => {
+    const { email, otp } = c.req.valid("json")
+    const logger = c.var.getLogger({ route: "auth.otp.handler" })
+
+    logger.info("otp:started", {
+      event: "handler.started",
+      scope: "handler.init",
+      input: { email },
+    })
+
+    try {
+      const result = await c.env.DB.prepare(
+        "UPDATE users SET activated = true WHERE email = ? and otp = ?",
+      )
+        .bind(email, otp)
+        .run()
+
+      if (result.meta.changes === 1) {
+        logger.info("otp:activated", {
+          event: "user.activated",
+          scope: "handler.update",
+        })
+
+        return c.json(withSuccess("user activated"), 200)
+      }
+
+      logger.warn("otp:failed", {
+        event: "user.failed.otp",
+        scope: "handler.update",
+      })
+
+      return c.json(withError("otp invalid"), 400)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
+
+      logger.error("otp:error", {
+        event: "otp.error",
+        scope: "db.users",
+        error: errorMessage,
+      })
+
+      return c.json(withError(errorMessage), 500)
+    }
+  },
+)
+
+app.post(
   "/signup",
   validator("json", async (body, c) => {
     const validation = v.safeParse(signupContract, body)
-
-    if (validation.success) {
-      return validation.output
-    }
+    if (validation.success) return validation.output
 
     const logger = c.var.getLogger({ route: "auth.signup.validator" })
     const issues = v.flatten(validation.issues).nested

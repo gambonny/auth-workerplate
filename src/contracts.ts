@@ -35,3 +35,8 @@ export const ResponseResult = v.union([
   ResponseSuccessContract,
   ResponseErrorContract,
 ])
+
+export const otpContract = v.object({
+  email: v.pipe(v.string(), v.email()),
+  otp: v.pipe(v.string(), v.minLength(6)),
+})
