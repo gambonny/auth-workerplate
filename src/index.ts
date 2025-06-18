@@ -133,30 +133,29 @@ app.post(
         .run()
 
       if (result.meta.changes === 1) {
-        logger.info("otp:activated", {
-          event: "user.activated",
-          scope: "handler.update",
+        logger.info("user:activated", {
+          event: "otp.validated",
+          scope: "db.users",
         })
 
         return c.json(withSuccess("user activated"), 200)
       }
 
-      logger.warn("otp:failed", {
-        event: "user.failed.otp",
-        scope: "handler.update",
+      logger.warn("user:activated:failed", {
+        event: "otp.invalid",
+        scope: "db.users",
+        input: { otp },
       })
 
       return c.json(withError("otp invalid"), 400)
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err)
-
       logger.error("otp:error", {
-        event: "otp.error",
+        event: "db.error",
         scope: "db.users",
-        error: errorMessage,
+        error: err instanceof Error ? err.message : String(err),
       })
 
-      return c.json(withError(errorMessage), 500)
+      return c.json(withError("Unkown error"), 500)
     }
   },
 )
