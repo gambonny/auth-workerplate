@@ -136,6 +136,11 @@ app.post(
         logger.info("user:activated", {
           event: "otp.validated",
           scope: "db.users",
+          input: {
+            duration: result.meta.duration,
+            rowsRead: result.meta.rows_read,
+            rowsWritten: result.meta.rows_written,
+          },
         })
 
         return c.json(withSuccess("user activated"), 200)
@@ -204,7 +209,7 @@ app.post(
         input: { email },
       })
 
-      await c.env.DB.prepare(
+      const result = await c.env.DB.prepare(
         "INSERT INTO users (email, password_hash, salt, otp) VALUES (?, ?, ?, ?)",
       )
         .bind(email, passwordHash, generatedSalt, otp)
@@ -213,7 +218,12 @@ app.post(
       logger.info("user:registered", {
         event: "db.insert.success",
         scope: "db.users",
-        input: { email },
+        input: {
+          email,
+          duration: result.meta.duration,
+          rowsRead: result.meta.rows_read,
+          rowsWritten: result.meta.rows_written,
+        },
       })
 
       const workflow = await c.env.SIGNUP_WFW.create({ params: { email, otp } })
