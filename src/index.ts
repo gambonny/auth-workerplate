@@ -80,7 +80,6 @@ const app = new Hono<{
   Variables: { thread: string; getLogger: GetLoggerFn } & TimingVariables
 }>()
 
-app.use(timing())
 app.use(cors({ origin: "http://localhost:5173", credentials: true }))
 app.use(secureHeaders())
 app.use(trimTrailingSlash())
@@ -117,6 +116,7 @@ app.post(
 
     return c.json(withError("Input invalid", issues), 400)
   }),
+  timing({ totalDescription: "full-request" }),
   async (c): Promise<Response> => {
     const { email, otp } = c.req.valid("json")
     const logger = c.var.getLogger({ route: "auth.otp.handler" })
@@ -135,22 +135,13 @@ app.post(
         .run()
 
       if (result.meta.changes === 1) {
-        const dbMeta = {
-          duration: result.meta.duration,
-          rowsRead: result.meta.rows_read,
-          rowsWritten: result.meta.rows_written,
-        }
-
         logger.info("user:activated", {
           event: "otp.validated",
           scope: "db.users",
-          input: dbMeta,
+          input: { db: { duration: result.meta.duration } },
         })
 
-        setMetric(c, "db.duration", dbMeta.duration)
-        setMetric(c, "db.rowsRead", dbMeta.rowsRead)
-        setMetric(c, "db.rowsWritten", dbMeta.rowsWritten)
-
+        setMetric(c, "db.duration", result.meta.duration)
         return c.json(withSuccess("user activated"), 200)
       }
 
@@ -191,6 +182,7 @@ app.post(
 
     return c.json(withError("Input invalid", issues), 400)
   }),
+  timing({ totalDescription: "full-request" }),
   async (c): Promise<Response> => {
     const { email, password } = c.req.valid("json")
     const logger = c.var.getLogger({ route: "auth.signup.handler" })
@@ -223,22 +215,15 @@ app.post(
         .bind(email, passwordHash, generatedSalt, otp)
         .run()
 
-      const dbMeta = {
-        duration: result.meta.duration,
-        rowsRead: result.meta.rows_read,
-        rowsWritten: result.meta.rows_written,
-      }
-
-      setMetric(c, "db.duration", dbMeta.duration)
-      setMetric(c, "db.rowsRead", dbMeta.rowsRead)
-      setMetric(c, "db.rowsWritten", dbMeta.rowsWritten)
-
+      setMetric(c, "db.duration", result.meta.duration)
       logger.info("user:registered", {
         event: "db.insert.success",
         scope: "db.users",
         input: {
           email,
-          ...dbMeta,
+          db: {
+            duration: result.meta.duration,
+          },
         },
       })
 
