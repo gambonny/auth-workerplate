@@ -1,10 +1,12 @@
 import { env } from "cloudflare:workers"
-import { type GetLoggerFn, useLogger } from "@gambonny/cflo"
+import { cors } from "hono/cors"
+import { timing, setMetric, startTime, endTime } from "hono/timing"
 import { Hono } from "hono"
 import { secureHeaders } from "hono/secure-headers"
 import { trimTrailingSlash } from "hono/trailing-slash"
 import { validator } from "hono/validator"
 import * as v from "valibot"
+import { type GetLoggerFn, useLogger } from "@gambonny/cflo"
 import { otpContract, signupContract } from "./contracts"
 import {
   generateOtp,
@@ -20,9 +22,8 @@ import {
   type WorkflowEvent,
   type WorkflowStep,
 } from "cloudflare:workers"
-import { Resend } from "resend"
 import type { SignupWorkflowEnv, SignupWorkflowParams } from "./types"
-import { cors } from "hono/cors"
+import type { TimingVariables } from "hono/timing"
 
 export class SignupWorkflow extends WorkflowEntrypoint<
   SignupWorkflowEnv,
@@ -76,9 +77,10 @@ export class SignupWorkflow extends WorkflowEntrypoint<
 
 const app = new Hono<{
   Bindings: CloudflareBindings
-  Variables: { thread: string; getLogger: GetLoggerFn }
+  Variables: { thread: string; getLogger: GetLoggerFn } & TimingVariables
 }>()
 
+app.use(timing())
 app.use(cors({ origin: "http://localhost:5173", credentials: true }))
 app.use(secureHeaders())
 app.use(trimTrailingSlash())
@@ -133,15 +135,21 @@ app.post(
         .run()
 
       if (result.meta.changes === 1) {
+        const dbMeta = {
+          duration: result.meta.duration,
+          rowsRead: result.meta.rows_read,
+          rowsWritten: result.meta.rows_written,
+        }
+
         logger.info("user:activated", {
           event: "otp.validated",
           scope: "db.users",
-          input: {
-            duration: result.meta.duration,
-            rowsRead: result.meta.rows_read,
-            rowsWritten: result.meta.rows_written,
-          },
+          input: dbMeta,
         })
+
+        setMetric(c, "db.duration", dbMeta.duration)
+        setMetric(c, "db.rowsRead", dbMeta.rowsRead)
+        setMetric(c, "db.rowsWritten", dbMeta.rowsWritten)
 
         return c.json(withSuccess("user activated"), 200)
       }
@@ -215,14 +223,22 @@ app.post(
         .bind(email, passwordHash, generatedSalt, otp)
         .run()
 
+      const dbMeta = {
+        duration: result.meta.duration,
+        rowsRead: result.meta.rows_read,
+        rowsWritten: result.meta.rows_written,
+      }
+
+      setMetric(c, "db.duration", dbMeta.duration)
+      setMetric(c, "db.rowsRead", dbMeta.rowsRead)
+      setMetric(c, "db.rowsWritten", dbMeta.rowsWritten)
+
       logger.info("user:registered", {
         event: "db.insert.success",
         scope: "db.users",
         input: {
           email,
-          duration: result.meta.duration,
-          rowsRead: result.meta.rows_read,
-          rowsWritten: result.meta.rows_written,
+          ...dbMeta,
         },
       })
 
