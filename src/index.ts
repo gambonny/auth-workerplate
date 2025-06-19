@@ -100,7 +100,6 @@ app.use(async (c, next) => {
 app.post(
   //todo: max 3 tries
   "/otp/verify",
-  withResourceUrl,
   validator("json", async (body, c) => {
     const validation = v.safeParse(otpContract, body)
     if (validation.success) return validation.output
@@ -118,6 +117,7 @@ app.post(
     return c.json(withError("Input invalid", issues), 400)
   }),
   timing({ totalDescription: "full-request" }),
+  withResourceUrl,
   async (c): Promise<Response> => {
     const { email, otp } = c.req.valid("json")
     const logger = c.var.getLogger({ route: "auth.otp.handler" })
@@ -167,7 +167,6 @@ app.post(
 
 app.post(
   "/signup",
-  withResourceUrl,
   validator("json", async (body, c) => {
     const validation = v.safeParse(signupContract, body)
     if (validation.success) return validation.output
@@ -185,6 +184,7 @@ app.post(
     return c.json(withError("Input invalid", issues), 400)
   }),
   timing({ totalDescription: "full-request" }),
+  withResourceUrl,
   async (c): Promise<Response> => {
     const { email, password } = c.req.valid("json")
     const logger = c.var.getLogger({ route: "auth.signup.handler" })
