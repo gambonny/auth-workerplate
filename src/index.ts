@@ -15,7 +15,7 @@ import {
   withSuccess,
   salt,
 } from "./generators"
-import { requireThread } from "./middlewares"
+import { requireThread, withResourceUrl } from "./middlewares"
 
 import {
   WorkflowEntrypoint,
@@ -100,6 +100,7 @@ app.use(async (c, next) => {
 app.post(
   //todo: max 3 tries
   "/otp/verify",
+  withResourceUrl,
   validator("json", async (body, c) => {
     const validation = v.safeParse(otpContract, body)
     if (validation.success) return validation.output
@@ -166,6 +167,7 @@ app.post(
 
 app.post(
   "/signup",
+  withResourceUrl,
   validator("json", async (body, c) => {
     const validation = v.safeParse(signupContract, body)
     if (validation.success) return validation.output
