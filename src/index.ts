@@ -119,6 +119,7 @@ app.post(
   timing({ totalDescription: "full-request" }),
   withResourceUrl,
   async (c): Promise<Response> => {
+    c.header("Timing-Allow-Origin", "http://localhost:5173")
     const { email, otp } = c.req.valid("json")
     const logger = c.var.getLogger({ route: "auth.otp.handler" })
 
@@ -186,6 +187,7 @@ app.post(
   timing({ totalDescription: "full-request" }),
   withResourceUrl,
   async (c): Promise<Response> => {
+    c.header("Timing-Allow-Origin", "http://localhost:5173")
     const { email, password } = c.req.valid("json")
     const logger = c.var.getLogger({ route: "auth.signup.handler" })
 
