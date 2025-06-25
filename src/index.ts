@@ -6,6 +6,8 @@ import { secureHeaders } from "hono/secure-headers"
 import { trimTrailingSlash } from "hono/trailing-slash"
 import { validator } from "hono/validator"
 import * as v from "valibot"
+import { sign as jwtSign } from "@tsndr/cloudflare-worker-jwt"
+import { setCookie } from "hono/cookie"
 import { type GetLoggerFn, useLogger } from "@gambonny/cflo"
 import { otpContract, signupContract } from "./contracts"
 import {
@@ -144,6 +146,18 @@ app.post(
         })
 
         setMetric(c, "db.duration", result.meta.duration)
+
+        const payload = { email, exp: Math.floor(Date.now() / 1000) + 60 * 60 }
+        const token = await jwtSign(payload, c.env.JWT_SECRET)
+
+        setCookie(c, "token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "Strict",
+          maxAge: 3600,
+          path: "/",
+        })
+
         return c.json(withSuccess("user activated"), 200)
       }
 

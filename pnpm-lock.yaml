@@ -11,6 +11,9 @@ importers:
       '@gambonny/cflo':
         specifier: ^0.0.13
         version: 0.0.13(hono@4.7.10)
+      '@tsndr/cloudflare-worker-jwt':
+        specifier: ^3.2.0
+        version: 3.2.0
       hono:
         specifier: ^4.7.10
         version: 4.7.10
@@ -422,6 +425,9 @@ packages:
 
   '@selderee/plugin-htmlparser2@0.11.0':
     resolution: {integrity: sha512-P33hHGdldxGabLFjPPpaTxVolMrzrcegejx+0GxjrIb9Zv48D8yAIA/QTDR2dFl7Uz7urX8aX6+5bCZslr+gWQ==}
+
+  '@tsndr/cloudflare-worker-jwt@3.2.0':
+    resolution: {integrity: sha512-y45452JzKxFDfCUHNGrdgIcrJTkYa6xtrKtCQTjKj+hjzw8dOHF9R0uGuU8WxvCCMi4sMzZ1KREnZTsTy7DsiQ==}
 
   acorn-walk@8.3.2:
     resolution: {integrity: sha512-cjkyv4OtNCIeqhHrfS81QWXoCBPExR/J62oyEqepVw8WaQeSqpW2uhuLPh1m9eWhDuOo/jUXVTlifvesOWp/4A==}
@@ -922,6 +928,8 @@ snapshots:
     dependencies:
       domhandler: 5.0.3
       selderee: 0.11.0
+
+  '@tsndr/cloudflare-worker-jwt@3.2.0': {}
 
   acorn-walk@8.3.2: {}
 
