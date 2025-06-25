@@ -7,7 +7,7 @@ import { trimTrailingSlash } from "hono/trailing-slash"
 import { validator } from "hono/validator"
 import * as v from "valibot"
 import { sign as jwtSign } from "@tsndr/cloudflare-worker-jwt"
-import { setCookie } from "hono/cookie"
+import { getCookie, setCookie } from "hono/cookie"
 import { type GetLoggerFn, useLogger } from "@gambonny/cflo"
 import { otpContract, signupContract } from "./contracts"
 import {
@@ -26,6 +26,11 @@ import {
 } from "cloudflare:workers"
 import type { SignupWorkflowEnv, SignupWorkflowParams } from "./types"
 import type { TimingVariables } from "hono/timing"
+import type { UnknownRecord } from "type-fest"
+
+type TokenSentinelService = {
+  validateToken: (token: string) => Promise<false | UnknownRecord>
+}
 
 export class SignupWorkflow extends WorkflowEntrypoint<
   SignupWorkflowEnv,
@@ -284,6 +289,31 @@ app.post(
 
       return c.json(withError(errorMessage), 500)
     }
+  },
+)
+
+//todo: cache response
+app.get(
+  "/me",
+  timing({ totalDescription: "full-request" }),
+  withResourceUrl,
+  async (c): Promise<Response> => {
+    const logger = c.var.getLogger({ route: "auth.me.handler" })
+    const token = getCookie(c, "token")
+
+    if (!token) {
+      logger.error("Invalid token")
+      return c.json(withError("token invalid"), 401)
+    }
+
+    const sentinel = c.env.AUTH_SENTINEL as unknown as TokenSentinelService
+    const user = await sentinel.validateToken(token)
+
+    if (user) {
+      return c.json(withSuccess("session active", user))
+    }
+
+    return c.json(withError("session invalid"), 401)
   },
 )
 
