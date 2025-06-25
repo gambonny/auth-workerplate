@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers"
 import { cors } from "hono/cors"
-import { timing, setMetric, startTime, endTime } from "hono/timing"
+import { timing, setMetric } from "hono/timing"
 import { Hono } from "hono"
 import { secureHeaders } from "hono/secure-headers"
 import { trimTrailingSlash } from "hono/trailing-slash"
@@ -30,7 +30,7 @@ export class SignupWorkflow extends WorkflowEntrypoint<
   SignupWorkflowParams
 > {
   async run(event: WorkflowEvent<SignupWorkflowParams>, step: WorkflowStep) {
-    const { email, otp } = event.payload
+    const { email } = event.payload
 
     // Step 1: Send OTP email
     // await step.do(
