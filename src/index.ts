@@ -6,7 +6,13 @@ import { secureHeaders } from "hono/secure-headers"
 import { trimTrailingSlash } from "hono/trailing-slash"
 import { validator } from "hono/validator"
 import * as v from "valibot"
-import { sign as jwtSign } from "@tsndr/cloudflare-worker-jwt"
+
+import {
+  sign as jwtSign,
+  decode as jwtDecode,
+  verify as jwtVerify,
+} from "@tsndr/cloudflare-worker-jwt"
+
 import { getCookie, setCookie } from "hono/cookie"
 import { type GetLoggerFn, useLogger } from "@gambonny/cflo"
 import { otpContract, signupContract } from "./contracts"
@@ -143,28 +149,46 @@ app.post(
         .bind(email, otp)
         .run()
 
-      if (result.meta.changes === 1) {
-        logger.info("user:activated", {
-          event: "otp.validated",
-          scope: "db.users",
-          input: { db: { duration: result.meta.duration } },
-        })
+      // if (result.meta.changes === 1) {
+      logger.info("user:activated", {
+        event: "otp.validated",
+        scope: "db.users",
+        input: { db: { duration: result.meta.duration } },
+      })
 
-        setMetric(c, "db.duration", result.meta.duration)
+      setMetric(c, "db.duration", result.meta.duration)
 
-        const payload = { email, exp: Math.floor(Date.now() / 1000) + 60 * 60 }
-        const token = await jwtSign(payload, c.env.JWT_SECRET)
-
-        setCookie(c, "token", token, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "Strict",
-          maxAge: 3600,
-          path: "/",
-        })
-
-        return c.json(withSuccess("user activated"), 200)
+      const accessPayload = {
+        email,
+        exp: Math.floor(Date.now() / 1000) + 60 * 60,
       }
+
+      const refreshPayload = {
+        email,
+        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 14,
+      }
+
+      const accessToken = await jwtSign(accessPayload, c.env.JWT_SECRET)
+      const refreshToken = await jwtSign(refreshPayload, c.env.JWT_SECRET)
+
+      setCookie(c, "token", accessToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "Strict",
+        maxAge: 3600,
+        path: "/",
+      })
+
+      setCookie(c, "refresh_token", refreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "Strict",
+        maxAge: 60 * 60 * 24 * 14,
+        path: "/",
+      })
+
+      return c.json(withSuccess("user activated"), 200)
+      // }
 
       logger.warn("user:activated:failed", {
         event: "otp.invalid",
@@ -292,6 +316,33 @@ app.post(
   },
 )
 
+app.post("/refresh", async c => {
+  const refreshToken = getCookie(c, "refresh_token")
+  if (!refreshToken) return c.json(withError("Missing refresh token"), 401)
+
+  const isValid = await jwtVerify(refreshToken, c.env.JWT_SECRET)
+  if (!isValid) return c.json(withError("Invalid refresh token"), 401)
+
+  const decoded = jwtDecode(refreshToken).payload as { email?: string }
+
+  if (!decoded?.email) return c.json(withError("Malformed token"), 400)
+
+  const newAccessToken = await jwtSign(
+    { email: decoded.email, exp: Math.floor(Date.now() / 1000) + 60 * 60 },
+    c.env.JWT_SECRET,
+  )
+
+  setCookie(c, "token", newAccessToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "Strict",
+    maxAge: 3600,
+    path: "/",
+  })
+
+  return c.json(withSuccess("Access token refreshed"))
+})
+
 //todo: cache response
 app.get(
   "/me",
@@ -310,10 +361,10 @@ app.get(
     const user = await sentinel.validateToken(token)
 
     if (user) {
-      return c.json(withSuccess("session active", user))
+      return c.json(withSuccess("token active", user))
     }
 
-    return c.json(withError("session invalid"), 401)
+    return c.json(withError("token invalid"), 401)
   },
 )
 
