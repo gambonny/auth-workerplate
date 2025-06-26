@@ -174,7 +174,7 @@ app.post(
       setCookie(c, "token", accessToken, {
         httpOnly: true,
         secure: true,
-        // sameSite: "Strict",
+        sameSite: "None",
         maxAge: 3600,
         path: "/",
       })
@@ -182,7 +182,7 @@ app.post(
       setCookie(c, "refresh_token", refreshToken, {
         httpOnly: true,
         secure: true,
-        // sameSite: "Strict",
+        sameSite: "None",
         maxAge: 60 * 60 * 24 * 14,
         path: "/",
       })
