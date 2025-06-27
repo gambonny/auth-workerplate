@@ -190,13 +190,13 @@ app.post(
       return c.json(withSuccess("user activated"), 200)
       // }
 
-      logger.warn("user:activated:failed", {
-        event: "otp.invalid",
-        scope: "db.users",
-        input: { otp },
-      })
+      // logger.warn("user:activated:failed", {
+      //   event: "otp.invalid",
+      //   scope: "db.users",
+      //   input: { otp },
+      // })
 
-      return c.json(withError("otp invalid"), 400)
+      // return c.json(withError("otp invalid"), 400)
     } catch (err) {
       logger.error("otp:error", {
         event: "db.error",
@@ -335,7 +335,7 @@ app.post("/refresh", async c => {
   setCookie(c, "token", newAccessToken, {
     httpOnly: true,
     secure: true,
-    sameSite: "Strict",
+    sameSite: "None",
     maxAge: 3600,
     path: "/",
   })
@@ -351,6 +351,8 @@ app.get(
   async (c): Promise<Response> => {
     const logger = c.var.getLogger({ route: "auth.me.handler" })
     const token = getCookie(c, "token")
+    logger.info("token", { token })
+    logger.info("all cookies", { refresh: getCookie(c, "refresh_token") })
 
     if (!token) {
       logger.error("Invalid token")
