@@ -168,8 +168,8 @@ app.post(
         exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 14,
       }
 
-      const accessToken = await jwtSign(accessPayload, c.env.JWT_SECRET)
-      const refreshToken = await jwtSign(refreshPayload, c.env.JWT_SECRET)
+      const accessToken = await jwtSign(accessPayload, "secretito")
+      const refreshToken = await jwtSign(refreshPayload, "secretito")
 
       setCookie(c, "token", accessToken, {
         httpOnly: true,
@@ -320,7 +320,7 @@ app.post("/refresh", async c => {
   const refreshToken = getCookie(c, "refresh_token")
   if (!refreshToken) return c.json(withError("Missing refresh token"), 401)
 
-  const isValid = await jwtVerify(refreshToken, c.env.JWT_SECRET)
+  const isValid = await jwtVerify(refreshToken, "secretito")
   if (!isValid) return c.json(withError("Invalid refresh token"), 401)
 
   const decoded = jwtDecode(refreshToken).payload as { email?: string }
@@ -329,7 +329,7 @@ app.post("/refresh", async c => {
 
   const newAccessToken = await jwtSign(
     { email: decoded.email, exp: Math.floor(Date.now() / 1000) + 60 * 60 },
-    c.env.JWT_SECRET,
+    "secretito",
   )
 
   setCookie(c, "token", newAccessToken, {
