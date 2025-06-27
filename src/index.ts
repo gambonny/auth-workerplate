@@ -351,8 +351,6 @@ app.get(
   async (c): Promise<Response> => {
     const logger = c.var.getLogger({ route: "auth.me.handler" })
     const token = getCookie(c, "token")
-    logger.info("token", { token })
-    logger.info("all cookies", { refresh: getCookie(c, "refresh_token") })
 
     if (!token) {
       logger.error("Invalid token")
@@ -362,6 +360,7 @@ app.get(
     const sentinel = c.env.AUTH_SENTINEL as unknown as TokenSentinelService
     const user = await sentinel.validateToken(token)
 
+    logger.info("user ac", { user })
     if (user) {
       return c.json(withSuccess("token active", user))
     }
