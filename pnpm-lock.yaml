@@ -11,6 +11,9 @@ importers:
       '@gambonny/cflo':
         specifier: ^0.0.13
         version: 0.0.13(hono@4.8.3)
+      '@hono/ua-blocker':
+        specifier: ^0.1.2
+        version: 0.1.2(hono@4.8.3)
       '@tsndr/cloudflare-worker-jwt':
         specifier: ^3.2.0
         version: 3.2.0
@@ -300,6 +303,11 @@ packages:
     peerDependenciesMeta:
       hono:
         optional: true
+
+  '@hono/ua-blocker@0.1.2':
+    resolution: {integrity: sha512-8XqX0v32vaM/DKcOo/Km+3BHKNPcBx3m5kOtzlm8FHrguJ4gxrK41JVYSIlKKhfVKJTIMwvp3F10f0rq8YNjbA==}
+    peerDependencies:
+      hono: '*'
 
   '@img/sharp-darwin-arm64@0.33.5':
     resolution: {integrity: sha512-UT4p+iz/2H4twwAoLCqfA9UH5pI6DggwKEGuaPy7nCVQ8ZsiY5PIcrRvD1DzuY3qYL07NtIQcWnBSY/heikIFQ==}
@@ -831,6 +839,10 @@ snapshots:
       hono: 4.8.3
     transitivePeerDependencies:
       - typescript
+
+  '@hono/ua-blocker@0.1.2(hono@4.8.3)':
+    dependencies:
+      hono: 4.8.3
 
   '@img/sharp-darwin-arm64@0.33.5':
     optionalDependencies:

@@ -1,3 +1,5 @@
+import { uaBlocker } from "@hono/ua-blocker"
+import { aiBots, useAiRobotsTxt } from "@hono/ua-blocker/ai-bots"
 import { env } from "cloudflare:workers"
 import { cors } from "hono/cors"
 import { timing, setMetric } from "hono/timing"
@@ -97,6 +99,16 @@ app.use(cors({ origin: "http://localhost:5173", credentials: true }))
 app.use(secureHeaders())
 app.use(trimTrailingSlash())
 app.use(requireThread)
+// Block all AI bots
+app.use(
+  "*",
+  uaBlocker({
+    blocklist: aiBots,
+  }),
+)
+
+// Serve robots.txt to discourage AI bots
+app.use("/robots.txt", useAiRobotsTxt())
 
 app.use(async (c, next) => {
   return useLogger({
