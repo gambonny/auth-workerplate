@@ -204,7 +204,7 @@ app.post(
       const accessToken = await jwtSign(accessPayload, "secretito")
       const refreshToken = await jwtSign(refreshPayload, "secretito")
 
-      logger.warn("access token", { accessToken })
+      logger.warn("access token", { accessPayload })
       setCookie(c, "token", accessToken, {
         httpOnly: true,
         secure: true,
