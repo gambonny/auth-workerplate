@@ -189,7 +189,7 @@ app.post(
 
       const accessPayload = {
         id: user.id,
-        email: user.email,
+        email,
         exp: Math.floor(Date.now() / 1000) + 60 * 60,
       }
 
@@ -197,7 +197,7 @@ app.post(
 
       const refreshPayload = {
         id: user.id,
-        email: user.email,
+        email,
         exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 14,
       }
 
