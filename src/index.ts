@@ -409,38 +409,43 @@ app.get(
   },
 )
 
-app.post("/logout", async c => {
-  const logger = c.var.getLogger({ route: "auth.logout.handler" })
+app.post(
+  "/logout",
+  timing({ totalDescription: "full-request" }),
+  withResourceUrl,
+  async c => {
+    const logger = c.var.getLogger({ route: "auth.logout.handler" })
 
-  logger.info("user:logout", {
-    event: "logout.started",
-    scope: "auth.session",
-  })
+    logger.info("user:logout", {
+      event: "logout.started",
+      scope: "auth.session",
+    })
 
-  // Expire the tokens by setting maxAge=0
-  setCookie(c, "token", "", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "None",
-    path: "/",
-    maxAge: 0,
-  })
+    // Expire the tokens by setting maxAge=0
+    setCookie(c, "token", "", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      path: "/",
+      maxAge: 0,
+    })
 
-  setCookie(c, "refresh_token", "", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "None",
-    path: "/",
-    maxAge: 0,
-  })
+    setCookie(c, "refresh_token", "", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      path: "/",
+      maxAge: 0,
+    })
 
-  logger.info("user:logout:success", {
-    event: "logout.success",
-    scope: "auth.session",
-  })
+    logger.info("user:logout:success", {
+      event: "logout.success",
+      scope: "auth.session",
+    })
 
-  return c.json(withSuccess("Logged out"), 200)
-})
+    return c.json(withSuccess("Logged out"), 200)
+  },
+)
 
 app.notFound(c => {
   return c.text("Not found", 404)
