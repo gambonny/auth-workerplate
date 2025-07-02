@@ -171,11 +171,13 @@ app.post(
       setMetric(c, "db.duration", result.meta.duration)
 
       const accessPayload = {
+        id: result.results.at(0)?.id,
         email,
         exp: Math.floor(Date.now() / 1000) + 60 * 60,
       }
 
       const refreshPayload = {
+        id: result.results.at(0)?.id,
         email,
         exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 14,
       }
@@ -207,7 +209,7 @@ app.post(
       //   scope: "db.users",
       //   input: { otp },
       // })
-
+      //
       // return c.json(withError("otp invalid"), 400)
     } catch (err) {
       logger.error("otp:error", {
@@ -335,12 +337,19 @@ app.post("/refresh", async c => {
   const isValid = await jwtVerify(refreshToken, "secretito")
   if (!isValid) return c.json(withError("Invalid refresh token"), 401)
 
-  const decoded = jwtDecode(refreshToken).payload as { email?: string }
+  const decoded = jwtDecode(refreshToken).payload as {
+    id?: string
+    email?: string
+  }
 
   if (!decoded?.email) return c.json(withError("Malformed token"), 400)
 
   const newAccessToken = await jwtSign(
-    { email: decoded.email, exp: Math.floor(Date.now() / 1000) + 60 * 60 },
+    {
+      id: decoded.id,
+      email: decoded.email,
+      exp: Math.floor(Date.now() / 1000) + 60 * 60,
+    },
     "secretito",
   )
 
@@ -372,7 +381,6 @@ app.get(
     const sentinel = c.env.AUTH_SENTINEL as unknown as TokenSentinelService
     const user = await sentinel.validateToken(token)
 
-    logger.info("user ac", { user })
     if (user) {
       return c.json(withSuccess("token active", user))
     }
