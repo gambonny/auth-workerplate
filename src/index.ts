@@ -155,6 +155,21 @@ app.post(
     })
 
     try {
+      const user = await c.env.DB.prepare(
+        "SELECT id FROM users WHERE email = ? AND otp = ? AND activated = false",
+      )
+        .bind(email, otp)
+        .first()
+
+      if (!user) {
+        logger.warn("user:activated:failed", {
+          event: "otp.invalid",
+          scope: "db.users",
+          input: { email, otp }, // opaque these values
+        })
+        return c.json(withError("Invalid OTP or already activated"), 400)
+      }
+
       const result = await c.env.DB.prepare(
         "UPDATE users SET activated = true WHERE email = ? and otp = ?",
       )
@@ -171,14 +186,14 @@ app.post(
       setMetric(c, "db.duration", result.meta.duration)
 
       const accessPayload = {
-        id: result.results.at(0)?.id,
-        email,
+        id: user.id,
+        email: user.email,
         exp: Math.floor(Date.now() / 1000) + 60 * 60,
       }
 
       const refreshPayload = {
-        id: result.results.at(0)?.id,
-        email,
+        id: user.id,
+        email: user.email,
         exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 14,
       }
 
