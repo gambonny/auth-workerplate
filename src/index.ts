@@ -159,7 +159,8 @@ app.post(
         // "SELECT id FROM users WHERE email = ? AND otp = ? AND activated = false",
         "SELECT id FROM users WHERE email = ? AND activated = false",
       )
-        .bind(email, otp)
+        // .bind(email, otp)
+        .bind(email)
         .first()
 
       if (!user) {
