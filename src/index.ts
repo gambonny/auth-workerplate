@@ -193,7 +193,7 @@ app.post(
         exp: Math.floor(Date.now() / 1000) + 60 * 60,
       }
 
-      logger.warn("user", user)
+      logger.warn("user", { user })
 
       const refreshPayload = {
         id: user.id,
