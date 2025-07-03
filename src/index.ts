@@ -513,6 +513,94 @@ app.post(
   },
 )
 
+const resetPasswordContract = v.object({
+  token: v.pipe(v.string(), v.trim(), v.nonEmpty("Token is required")),
+  password: v.pipe(
+    v.string(),
+    v.trim(),
+    v.minLength(8, "Password must be at least 8 characters"),
+  ),
+})
+
+app.post(
+  "/password/reset",
+  validator("json", async (body, c) => {
+    const validation = v.safeParse(resetPasswordContract, body)
+    if (validation.success) return validation.output
+
+    const logger = c.var.getLogger({ route: "auth.reset.validator" })
+    const issues = v.flatten(validation.issues).nested
+
+    logger.warn("password:reset:validation:failed", {
+      event: "validation.failed",
+      scope: "validator.schema",
+      input: validation.output,
+      issues,
+    })
+
+    return c.json(withError("Invalid input", issues), 400)
+  }),
+  timing({ totalDescription: "password-reset-request" }),
+  withResourceUrl,
+  async (c): Promise<Response> => {
+    const logger = c.var.getLogger({ route: "auth.reset.handler" })
+    const { token, password } = c.req.valid("json")
+
+    // hash the provided token to compare against stored hash
+    const hashedToken = await sha256hex(token)
+
+    // try to find a user with that reset_token_hash
+    const user = await c.env.DB.prepare(
+      "SELECT id, email, salt, reset_expires FROM users WHERE reset_token_hash = ?",
+    )
+      .bind(hashedToken)
+      .first<{
+        id: number
+        email: string
+        salt: string
+        reset_expires: number
+      }>()
+
+    if (!user) {
+      logger.warn("password:reset:failed:notfound", {
+        event: "reset.token.notfound",
+        scope: "db.users",
+      })
+      return c.json(withError("Reset token is invalid"), 400)
+    }
+
+    if (user.reset_expires < Math.floor(Date.now() / 1000)) {
+      logger.warn("password:reset:failed:expired", {
+        event: "reset.token.expired",
+        scope: "db.users",
+        input: { email: user.email },
+      })
+      return c.json(withError("Reset token has expired"), 400)
+    }
+
+    // hash the new password with existing salt (or generate new salt if you want)
+    const passwordHash = await hashPassword(password, user.salt)
+
+    const result = await c.env.DB.prepare(
+      `UPDATE users
+         SET password_hash = ?, reset_token_hash = NULL, reset_expires = NULL
+       WHERE id = ?`,
+    )
+      .bind(passwordHash, user.id)
+      .run()
+
+    setMetric(c, "db.duration", result.meta.duration)
+
+    logger.info("password:reset:success", {
+      event: "password.reset.success",
+      scope: "db.users",
+      input: { email: user.email },
+    })
+
+    return c.json(withSuccess("Password has been successfully reset"), 200)
+  },
+)
+
 app.notFound(c => {
   return c.text("Not found", 404)
 })
