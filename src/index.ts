@@ -158,7 +158,7 @@ app.post(
     try {
       const user = await c.env.DB.prepare(
         // "SELECT id FROM users WHERE email = ? AND otp = ? AND activated = false",
-        "SELECT id FROM users WHERE email = ? AND activated = false",
+        "SELECT id FROM users WHERE email = ? AND active = false",
       )
         // .bind(email, otp)
         .bind(email)
@@ -174,7 +174,7 @@ app.post(
       }
 
       const result = await c.env.DB.prepare(
-        "UPDATE users SET activated = true WHERE email = ? and otp = ?",
+        "UPDATE users SET active = true WHERE email = ? and otp = ?",
       )
         .bind(email, otp)
         .run()
