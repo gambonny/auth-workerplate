@@ -6,8 +6,8 @@ CREATE TABLE users (
   password_hash TEXT NOT NULL,
   salt TEXT NOT NULL,
   active BOOLEAN NOT NULL DEFAULT 0,
-  otp TEXT NOT NULL
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  otp TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);

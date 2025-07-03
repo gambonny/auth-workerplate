@@ -24,6 +24,7 @@ import {
   withError,
   withSuccess,
   salt,
+  sha256hex,
 } from "./generators"
 import { requireThread, withResourceUrl } from "./middlewares"
 
@@ -444,6 +445,71 @@ app.post(
     })
 
     return c.json(withSuccess("Logged out"), 200)
+  },
+)
+
+const forgotPasswordContract = v.object({
+  email: v.pipe(
+    v.string(),
+    v.trim(),
+    v.nonEmpty("Email is required"),
+    v.email(),
+  ),
+})
+
+app.post(
+  "/password/forgot",
+  validator("json", async (body, c) => {
+    const validation = v.safeParse(forgotPasswordContract, body)
+    if (validation.success) return validation.output
+
+    const logger = c.var.getLogger({ route: "auth.forgot.validator" })
+    const issues = v.flatten(validation.issues).nested
+
+    logger.warn("password:forgot:validation:failed", {
+      event: "validation.failed",
+      scope: "validator.schema",
+      input: validation.output,
+      issues,
+    })
+
+    return c.json(withError("Invalid input", issues), 400)
+  }),
+  timing({ totalDescription: "password-forgot-request" }),
+  withResourceUrl,
+  async (c): Promise<Response> => {
+    const { email } = c.req.valid("json")
+    const logger = c.var.getLogger({ route: "auth.forgot.handler" })
+
+    // generate token + hash + expiry
+    const rawToken = crypto.randomUUID()
+    const tokenHash = await sha256hex(rawToken)
+    const expires = Math.floor(Date.now() / 1000) + 60 * 60 // 1h
+
+    // store only the hash + expiry
+    await c.env.DB.prepare(
+      `UPDATE users
+         SET reset_token_hash = ?, reset_expires = ?
+       WHERE email = ?`,
+    )
+      .bind(tokenHash, expires, email)
+      .run()
+
+    logger.info("password:forgot:token-generated", {
+      event: "token.generated",
+      scope: "db.users",
+      input: { email },
+    })
+
+    // enqueue/send email (could use your WorkflowEntrypoint)
+    // send email with link: https://your-app.com/password/reset?token=<rawToken>
+
+    return c.json(
+      withSuccess(
+        "If that email is registered, you’ll receive reset instructions shortly",
+      ),
+      200,
+    )
   },
 )
 
