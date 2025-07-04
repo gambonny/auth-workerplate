@@ -36,6 +36,7 @@ import {
 import type { SignupWorkflowEnv, SignupWorkflowParams } from "./types"
 import type { TimingVariables } from "hono/timing"
 import type { UnknownRecord } from "type-fest"
+import { Resend } from "resend"
 
 type TokenSentinelService = {
   validateToken: (token: string) => Promise<false | UnknownRecord>
@@ -46,28 +47,28 @@ export class SignupWorkflow extends WorkflowEntrypoint<
   SignupWorkflowParams
 > {
   async run(event: WorkflowEvent<SignupWorkflowParams>, step: WorkflowStep) {
-    const { email } = event.payload
+    const { email, otp } = event.payload
 
     // Step 1: Send OTP email
-    // await step.do(
-    //   "send-otp-email",
-    //   { retries: { limit: 1, delay: 0 } },
-    //   async () => {
-    //     const resend = new Resend(this.env.RESEND)
-    //     const { error, data } = await resend.emails.send({
-    //       from: "send@gambonny.com",
-    //       to: email,
-    //       subject: "Your one-time password",
-    //       html: `<p>Your OTP is <strong>${otp}</strong></p>`,
-    //     })
-    //
-    //     if (error) throw new Error(error.message)
-    //     console.log("data: ", data)
-    //   },
-    // )
+    await step.do(
+      "send-otp-email",
+      { retries: { limit: 1, delay: 0 } },
+      async () => {
+        const resend = new Resend(this.env.RESEND)
+        const { error, data } = await resend.emails.send({
+          from: "me@mail.gambonny.com",
+          to: email,
+          subject: "Your one-time password",
+          html: `<p>Your OTP is <strong>${otp}</strong></p>`,
+        })
+
+        if (error) throw new Error(error.message)
+        console.log("data: ", data)
+      },
+    )
 
     // Step 2: Wait for 1 minute
-    await step.sleep("wait-for-activation", "5 minutes")
+    await step.sleep("wait-for-activation", "60 minutes")
 
     // Step 3: Check if user is activated
     const isUserActive = await step.do("check-activation", async () => {
