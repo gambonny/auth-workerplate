@@ -47,7 +47,7 @@ export class SignupWorkflow extends WorkflowEntrypoint<
   SignupWorkflowParams
 > {
   async run(event: WorkflowEvent<SignupWorkflowParams>, step: WorkflowStep) {
-    const { email, otp } = event.payload
+    const { otp } = event.payload
 
     // Step 1: Send OTP email
     await step.do(
@@ -57,7 +57,7 @@ export class SignupWorkflow extends WorkflowEntrypoint<
         const resend = new Resend(this.env.RESEND)
         const { error, data } = await resend.emails.send({
           from: "me@mail.gambonny.com",
-          to: email,
+          to: "gambonny@gmail.com",
           subject: "Your one-time password",
           html: `<p>Your OTP is <strong>${otp}</strong></p>`,
         })
