@@ -11,7 +11,7 @@ export const signupContract = v.object({
 export const BaseResponseContract = v.object({
   status: v.union([v.literal("success"), v.literal("error")]),
   message: v.string(),
-  resource_url: v.optional(v.string(),
+  resource_url: v.optional(v.string()),
 })
 
 export const ResponseSuccessContract = v.intersect([
@@ -59,4 +59,3 @@ export const resetPasswordContract = v.object({
     v.minLength(8, "Password must be at least 8 characters"),
   ),
 })
-
