@@ -11,7 +11,7 @@ export const signupContract = v.object({
 export const BaseResponseContract = v.object({
   status: v.union([v.literal("success"), v.literal("error")]),
   message: v.string(),
-  resource_url: v.optional(v.string()),
+  resource_url: v.optional(v.string(),
 })
 
 export const ResponseSuccessContract = v.intersect([
@@ -41,3 +41,22 @@ export const otpContract = v.object({
   email: v.pipe(v.string(), v.email()),
   otp: v.pipe(v.string(), v.minLength(6)),
 })
+
+export const forgotPasswordContract = v.object({
+  email: v.pipe(
+    v.string(),
+    v.trim(),
+    v.nonEmpty("Email is required"),
+    v.email(),
+  ),
+})
+
+export const resetPasswordContract = v.object({
+  token: v.pipe(v.string(), v.trim(), v.nonEmpty("Token is required")),
+  password: v.pipe(
+    v.string(),
+    v.trim(),
+    v.minLength(8, "Password must be at least 8 characters"),
+  ),
+})
+

@@ -17,7 +17,12 @@ import {
 
 import { getCookie, setCookie } from "hono/cookie"
 import { type GetLoggerFn, useLogger } from "@gambonny/cflo"
-import { otpContract, signupContract } from "./contracts"
+import {
+  forgotPasswordContract,
+  otpContract,
+  resetPasswordContract,
+  signupContract,
+} from "./contracts"
 import {
   generateOtp,
   hashPassword,
@@ -47,7 +52,7 @@ export class SignupWorkflow extends WorkflowEntrypoint<
   SignupWorkflowParams
 > {
   async run(event: WorkflowEvent<SignupWorkflowParams>, step: WorkflowStep) {
-    const { otp } = event.payload
+    const { email, otp } = event.payload
 
     // Step 1: Send OTP email
     await step.do(
@@ -55,7 +60,7 @@ export class SignupWorkflow extends WorkflowEntrypoint<
       { retries: { limit: 1, delay: 0 } },
       async () => {
         const resend = new Resend(this.env.RESEND)
-        const { error, data } = await resend.emails.send({
+        const { error } = await resend.emails.send({
           from: "me@mail.gambonny.com",
           to: "gambonny@gmail.com",
           subject: "Your one-time password",
@@ -63,7 +68,6 @@ export class SignupWorkflow extends WorkflowEntrypoint<
         })
 
         if (error) throw new Error(error.message)
-        console.log("data: ", data)
       },
     )
 
@@ -97,7 +101,12 @@ const app = new Hono<{
   Variables: { thread: string; getLogger: GetLoggerFn } & TimingVariables
 }>()
 
-app.use(cors({ origin: "http://localhost:5173", credentials: true }))
+app.use(
+  cors({
+    origin: ["http://localhost:4173", "http://localhost:5173"],
+    credentials: true,
+  }),
+)
 app.use(secureHeaders())
 app.use(trimTrailingSlash())
 app.use(requireThread)
@@ -158,18 +167,16 @@ app.post(
 
     try {
       const user = await c.env.DB.prepare(
-        // "SELECT id FROM users WHERE email = ? AND otp = ? AND activated = false",
-        "SELECT id FROM users WHERE email = ? AND active = false",
+        "SELECT id FROM users WHERE email = ? AND otp = ? AND activated = false",
       )
-        // .bind(email, otp)
-        .bind(email)
+        .bind(email, otp)
         .first()
 
       if (!user) {
         logger.warn("user:activated:failed", {
           event: "otp.invalid",
           scope: "db.users",
-          input: { email, otp }, // opaque these values
+          input: { email, otp }, //TODO: opaque these values
         })
         return c.json(withError("Invalid OTP or already activated"), 400)
       }
@@ -180,59 +187,59 @@ app.post(
         .bind(email, otp)
         .run()
 
-      // if (result.meta.changes === 1) {
-      logger.info("user:activated", {
-        event: "otp.validated",
+      if (result.meta.changes === 1) {
+        logger.info("user:activated", {
+          event: "otp.validated",
+          scope: "db.users",
+          input: { db: { duration: result.meta.duration } },
+        })
+
+        setMetric(c, "db.duration", result.meta.duration)
+
+        const accessPayload = {
+          id: user.id,
+          email,
+          exp: Math.floor(Date.now() / 1000) + 60 * 60,
+        }
+
+        logger.warn("user", { user })
+
+        const refreshPayload = {
+          id: user.id,
+          email,
+          exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 14,
+        }
+
+        const accessToken = await jwtSign(accessPayload, "secretito")
+        const refreshToken = await jwtSign(refreshPayload, "secretito")
+
+        logger.warn("access token", { accessPayload })
+        setCookie(c, "token", accessToken, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "None",
+          maxAge: 3600,
+          path: "/",
+        })
+
+        setCookie(c, "refresh_token", refreshToken, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "None",
+          maxAge: 60 * 60 * 24 * 14,
+          path: "/",
+        })
+
+        return c.json(withSuccess("user activated"), 200)
+      }
+
+      logger.warn("user:activated:failed", {
+        event: "otp.invalid",
         scope: "db.users",
-        input: { db: { duration: result.meta.duration } },
+        input: { otp },
       })
 
-      setMetric(c, "db.duration", result.meta.duration)
-
-      const accessPayload = {
-        id: user.id,
-        email,
-        exp: Math.floor(Date.now() / 1000) + 60 * 60,
-      }
-
-      logger.warn("user", { user })
-
-      const refreshPayload = {
-        id: user.id,
-        email,
-        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 14,
-      }
-
-      const accessToken = await jwtSign(accessPayload, "secretito")
-      const refreshToken = await jwtSign(refreshPayload, "secretito")
-
-      logger.warn("access token", { accessPayload })
-      setCookie(c, "token", accessToken, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "None",
-        maxAge: 3600,
-        path: "/",
-      })
-
-      setCookie(c, "refresh_token", refreshToken, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "None",
-        maxAge: 60 * 60 * 24 * 14,
-        path: "/",
-      })
-
-      return c.json(withSuccess("user activated"), 200)
-      // }
-
-      // logger.warn("user:activated:failed", {
-      //   event: "otp.invalid",
-      //   scope: "db.users",
-      //   input: { otp },
-      // })
-      //
-      // return c.json(withError("otp invalid"), 400)
+      return c.json(withError("otp invalid"), 400)
     } catch (err) {
       logger.error("otp:error", {
         event: "db.error",
@@ -449,15 +456,6 @@ app.post(
   },
 )
 
-const forgotPasswordContract = v.object({
-  email: v.pipe(
-    v.string(),
-    v.trim(),
-    v.nonEmpty("Email is required"),
-    v.email(),
-  ),
-})
-
 app.post(
   "/password/forgot",
   validator("json", async (body, c) => {
@@ -502,8 +500,15 @@ app.post(
       input: { email },
     })
 
-    // enqueue/send email (could use your WorkflowEntrypoint)
-    // send email with link: https://your-app.com/password/reset?token=<rawToken>
+    const resend = new Resend(env.RESEND)
+    const { error } = await resend.emails.send({
+      from: "me@mail.gambonny.com",
+      to: "gambonny@gmail.com",
+      subject: "Your one-time password",
+      html: `<p>Your token is <strong>${tokenHash}</strong> you have 60 minutes</p>`,
+    })
+
+    if (error) throw new Error(error.message)
 
     return c.json(
       withSuccess(
@@ -513,15 +518,6 @@ app.post(
     )
   },
 )
-
-const resetPasswordContract = v.object({
-  token: v.pipe(v.string(), v.trim(), v.nonEmpty("Token is required")),
-  password: v.pipe(
-    v.string(),
-    v.trim(),
-    v.minLength(8, "Password must be at least 8 characters"),
-  ),
-})
 
 app.post(
   "/password/reset",
@@ -567,6 +563,7 @@ app.post(
         event: "reset.token.notfound",
         scope: "db.users",
       })
+
       return c.json(withError("Reset token is invalid"), 400)
     }
 
