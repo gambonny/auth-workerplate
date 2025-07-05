@@ -167,7 +167,7 @@ app.post(
 
     try {
       const user = await c.env.DB.prepare(
-        "SELECT id FROM users WHERE email = ? AND otp = ? AND activated = false",
+        "SELECT id FROM users WHERE email = ? AND otp = ? AND activate = false",
       )
         .bind(email, otp)
         .first()
