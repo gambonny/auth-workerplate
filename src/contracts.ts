@@ -59,3 +59,17 @@ export const resetPasswordContract = v.object({
     v.minLength(8, "Password must be at least 8 characters"),
   ),
 })
+
+export const loginContract = v.object({
+  email: v.pipe(
+    v.string(),
+    v.trim(),
+    v.nonEmpty("Email is required"),
+    v.email(),
+  ),
+  password: v.pipe(
+    v.string(),
+    v.trim(),
+    v.minLength(8, "Password must be at least 8 characters"),
+  ),
+})
