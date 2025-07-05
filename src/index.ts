@@ -504,8 +504,8 @@ app.post(
     const { error } = await resend.emails.send({
       from: "me@mail.gambonny.com",
       to: "gambonny@gmail.com",
-      subject: "Your one-time password",
-      html: `<p>Your token is <strong>${tokenHash}</strong> you have 60 minutes</p>`,
+      subject: "Your token",
+      html: `<p>Your token is <strong>${rawToken}</strong> you have 60 minutes</p>`,
     })
 
     if (error) throw new Error(error.message)
