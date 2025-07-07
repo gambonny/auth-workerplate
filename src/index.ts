@@ -32,7 +32,7 @@ import {
   salt,
   sha256hex,
 } from "./generators"
-import { requireThread, withResourceUrl } from "./middlewares"
+// import { requireThread } from "./middlewares"
 
 import {
   WorkflowEntrypoint,
@@ -43,6 +43,7 @@ import type { SignupWorkflowEnv, SignupWorkflowParams } from "./types"
 import type { TimingVariables } from "hono/timing"
 import type { UnknownRecord } from "type-fest"
 import { Resend } from "resend"
+import { contextStorage } from "hono/context-storage"
 
 type TokenSentinelService = {
   validateToken: (token: string) => Promise<false | UnknownRecord>
@@ -121,6 +122,7 @@ app.use(
 
 // Serve robots.txt to discourage AI bots
 app.use("/robots.txt", useAiRobotsTxt())
+app.use(contextStorage())
 
 app.use(async (c, next) => {
   return useLogger({
@@ -154,7 +156,6 @@ app.post(
     return c.json(withError("Input invalid", issues), 400)
   }),
   timing({ totalDescription: "full-request" }),
-  withResourceUrl,
   async (c): Promise<Response> => {
     c.header("Timing-Allow-Origin", "http://localhost:5173")
     const { email, otp } = c.req.valid("json")
@@ -272,7 +273,6 @@ app.post(
     return c.json(withError("Input invalid", issues), 400)
   }),
   timing({ totalDescription: "full-request" }),
-  withResourceUrl,
   async (c): Promise<Response> => {
     c.header("Timing-Allow-Origin", "http://localhost:5173")
     const { email, password } = c.req.valid("json")
@@ -398,7 +398,6 @@ app.post("/refresh", async c => {
 app.get(
   "/me",
   timing({ totalDescription: "full-request" }),
-  withResourceUrl,
   async (c): Promise<Response> => {
     const logger = c.var.getLogger({ route: "auth.me.handler" })
     const token = getCookie(c, "token")
@@ -419,43 +418,38 @@ app.get(
   },
 )
 
-app.post(
-  "/logout",
-  timing({ totalDescription: "full-request" }),
-  withResourceUrl,
-  async c => {
-    const logger = c.var.getLogger({ route: "auth.logout.handler" })
+app.post("/logout", timing({ totalDescription: "full-request" }), async c => {
+  const logger = c.var.getLogger({ route: "auth.logout.handler" })
 
-    logger.info("user:logout", {
-      event: "logout.started",
-      scope: "auth.session",
-    })
+  logger.info("user:logout", {
+    event: "logout.started",
+    scope: "auth.session",
+  })
 
-    // Expire the tokens by setting maxAge=0
-    setCookie(c, "token", "", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      path: "/",
-      maxAge: 0,
-    })
+  // Expire the tokens by setting maxAge=0
+  setCookie(c, "token", "", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    path: "/",
+    maxAge: 0,
+  })
 
-    setCookie(c, "refresh_token", "", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      path: "/",
-      maxAge: 0,
-    })
+  setCookie(c, "refresh_token", "", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    path: "/",
+    maxAge: 0,
+  })
 
-    logger.info("user:logout:success", {
-      event: "logout.success",
-      scope: "auth.session",
-    })
+  logger.info("user:logout:success", {
+    event: "logout.success",
+    scope: "auth.session",
+  })
 
-    return c.json(withSuccess("Logged out"), 200)
-  },
-)
+  return c.json(withSuccess("Logged out"), 200)
+})
 
 app.post(
   "/password/forgot",
@@ -476,7 +470,6 @@ app.post(
     return c.json(withError("Invalid input", issues), 400)
   }),
   timing({ totalDescription: "password-forgot-request" }),
-  withResourceUrl,
   async (c): Promise<Response> => {
     const { email } = c.req.valid("json")
     const logger = c.var.getLogger({ route: "auth.forgot.handler" })
@@ -539,7 +532,6 @@ app.post(
     return c.json(withError("Invalid input", issues), 400)
   }),
   timing({ totalDescription: "password-reset-request" }),
-  withResourceUrl,
   async (c): Promise<Response> => {
     const logger = c.var.getLogger({ route: "auth.reset.handler" })
     const { token, password } = c.req.valid("json")
@@ -620,7 +612,6 @@ app.post(
   }),
   // 3) Timing instrumentation
   timing({ totalDescription: "login-request" }),
-  withResourceUrl,
   async (c): Promise<Response> => {
     const logger = c.var.getLogger({ route: "auth.login.handler" })
     const { email, password } = c.req.valid("json")

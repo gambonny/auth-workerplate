@@ -1,4 +1,5 @@
 import type { IResponseSuccess, IResponseError } from "./types"
+import { getContext } from "hono/context-storage"
 
 export async function hashPassword(password: string, salt: string) {
   const encoder = new TextEncoder()
@@ -44,20 +45,32 @@ export function generateOtp(): string {
 export const withSuccess = <T extends object>(
   message: string,
   data?: T,
-): IResponseSuccess => ({
-  status: "success",
-  message,
-  ...(data && Object.keys(data).length ? { data } : {}),
-})
+): IResponseSuccess => {
+  const c = getContext()
+  const { origin, pathname } = new URL(c.req.url)
+
+  return {
+    status: "success",
+    message,
+    resource_url: origin + pathname,
+    ...(data && Object.keys(data).length ? { data } : {}),
+  }
+}
 
 export const withError = (
   message: string,
   issues?: Record<string, string[] | undefined> | undefined,
-): IResponseError => ({
-  status: "error",
-  message,
-  issues,
-})
+): IResponseError => {
+  const c = getContext()
+  const { origin, pathname } = new URL(c.req.url)
+
+  return {
+    status: "error",
+    message,
+    resource_url: origin + pathname,
+    issues,
+  }
+}
 
 export async function sha256hex(text: string): Promise<string> {
   const data = new TextEncoder().encode(text)
