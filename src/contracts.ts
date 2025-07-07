@@ -11,7 +11,7 @@ export const signupContract = v.object({
 export const BaseResponseContract = v.object({
   status: v.union([v.literal("success"), v.literal("error")]),
   message: v.string(),
-  resource_url: v.optional(v.string()),
+  resource_url: v.string(),
 })
 
 export const ResponseSuccessContract = v.intersect([
