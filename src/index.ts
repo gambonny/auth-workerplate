@@ -110,7 +110,7 @@ app.use(
 )
 app.use(secureHeaders())
 app.use(trimTrailingSlash())
-app.use(requireThread)
+// app.use(requireThread)
 // Block all AI bots
 app.use(
   "*",

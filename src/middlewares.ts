@@ -18,7 +18,6 @@ import type { UnknownRecord } from "type-fest"
  */
 export const requireThread: MiddlewareHandler = async (c, next) => {
   const thread = c.req.header("x-thread-id")
-  console.info("thread: ", thread)
 
   if (!thread) {
     console.warn("request.rejected", {
