@@ -27,10 +27,9 @@ import {
 import {
   generateOtp,
   hashPassword,
-  withError,
-  withSuccess,
   salt,
   sha256hex,
+  makeResponder,
 } from "./generators"
 // import { requireThread } from "./middlewares"
 
@@ -44,6 +43,7 @@ import type { TimingVariables } from "hono/timing"
 import type { UnknownRecord } from "type-fest"
 import { Resend } from "resend"
 import { contextStorage } from "hono/context-storage"
+import { responderMiddleware } from "./middlewares"
 
 type TokenSentinelService = {
   validateToken: (token: string) => Promise<false | UnknownRecord>
@@ -100,7 +100,11 @@ export class SignupWorkflow extends WorkflowEntrypoint<
 
 const app = new Hono<{
   Bindings: CloudflareBindings
-  Variables: { thread: string; getLogger: GetLoggerFn } & TimingVariables
+  Variables: {
+    thread: string
+    getLogger: GetLoggerFn
+    responder: ReturnType<typeof makeResponder>
+  } & TimingVariables
 }>()
 
 app.use(
@@ -111,6 +115,8 @@ app.use(
 )
 app.use(secureHeaders())
 app.use(trimTrailingSlash())
+app.use(contextStorage())
+app.use(responderMiddleware)
 // app.use(requireThread)
 // Block all AI bots
 app.use(
@@ -122,7 +128,6 @@ app.use(
 
 // Serve robots.txt to discourage AI bots
 app.use("/robots.txt", useAiRobotsTxt())
-app.use(contextStorage())
 
 app.use(async (c, next) => {
   return useLogger({
@@ -153,7 +158,7 @@ app.post(
       issues,
     })
 
-    return c.json(withError("Input invalid", issues), 400)
+    return c.var.responder("Input invalid", issues, 400)
   }),
   timing({ totalDescription: "full-request" }),
   async (c): Promise<Response> => {
@@ -180,7 +185,11 @@ app.post(
           scope: "db.users",
           input: { email, otp }, //TODO: opaque these values
         })
-        return c.json(withError("Invalid OTP or already activated"), 400)
+        return c.var.responder.error(
+          "Invalid OTP or already activated",
+          {},
+          400,
+        )
       }
 
       const result = await c.env.DB.prepare(
@@ -232,7 +241,7 @@ app.post(
           path: "/",
         })
 
-        return c.json(withSuccess("user activated"), 200)
+        return c.var.responder.success("user activated", 200)
       }
 
       logger.warn("user:activated:failed", {
@@ -241,7 +250,7 @@ app.post(
         input: { otp },
       })
 
-      return c.json(withError("otp invalid"), 400)
+      return c.var.responder.error("otp invalid", {}, 400)
     } catch (err) {
       logger.error("otp:error", {
         event: "db.error",
@@ -249,7 +258,7 @@ app.post(
         error: err instanceof Error ? err.message : String(err),
       })
 
-      return c.json(withError("Unkown error"), 500)
+      return c.var.responder.error("Unkown error", {}, 500)
     }
   },
 )
@@ -270,7 +279,8 @@ app.post(
       issues,
     })
 
-    return c.json(withError("Input invalid", issues), 400)
+    const r = makeResponder()
+    return c.json(r.error("Input invalid", issues), 400)
   }),
   timing({ totalDescription: "full-request" }),
   async (c): Promise<Response> => {
@@ -326,9 +336,8 @@ app.post(
         workflow,
       })
 
-      return c.json(
-        withSuccess("User registered, email with otp has been sent"),
-        201,
+      return c.var.responder.created(
+        "User registered, email with otp has been sent",
       )
     } catch (err) {
       if (err instanceof Error) {
@@ -340,8 +349,9 @@ app.post(
             input: { email },
           })
 
-          return c.json(
-            withError("Invalid input", { email: ["User already exists"] }),
+          return c.var.responder.error(
+            "Invalid input",
+            { email: ["User already exists"] },
             409,
           )
         }
@@ -355,24 +365,25 @@ app.post(
         error: errorMessage,
       })
 
-      return c.json(withError(errorMessage), 500)
+      return c.var.responder.error(errorMessage, {}, 500)
     }
   },
 )
 
 app.post("/refresh", async c => {
   const refreshToken = getCookie(c, "refresh_token")
-  if (!refreshToken) return c.json(withError("Missing refresh token"), 401)
+  if (!refreshToken)
+    return c.var.responder.error("Missing refresh token", {}, 401)
 
   const isValid = await jwtVerify(refreshToken, "secretito")
-  if (!isValid) return c.json(withError("Invalid refresh token"), 401)
+  if (!isValid) return c.var.responder.error("Invalid refresh token", {}, 401)
 
   const decoded = jwtDecode(refreshToken).payload as {
     id?: string
     email?: string
   }
 
-  if (!decoded?.email) return c.json(withError("Malformed token"), 400)
+  if (!decoded?.email) return c.var.responder.error("Malformed token", {}, 400)
 
   const newAccessToken = await jwtSign(
     {
@@ -391,7 +402,7 @@ app.post("/refresh", async c => {
     path: "/",
   })
 
-  return c.json(withSuccess("Access token refreshed"))
+  return c.var.responder.success("Access token refreshed")
 })
 
 //todo: cache response
@@ -404,17 +415,17 @@ app.get(
 
     if (!token) {
       logger.error("Invalid token")
-      return c.json(withError("token invalid"), 401)
+      return c.var.responder.success("token invalid", 401)
     }
 
     const sentinel = c.env.AUTH_SENTINEL as unknown as TokenSentinelService
     const user = await sentinel.validateToken(token)
 
     if (user) {
-      return c.json(withSuccess("token active", user))
+      return c.var.responder.success("token active", user)
     }
 
-    return c.json(withError("token invalid"), 401)
+    return c.var.responder.error("token invalid", {}, 401)
   },
 )
 
@@ -448,7 +459,7 @@ app.post("/logout", timing({ totalDescription: "full-request" }), async c => {
     scope: "auth.session",
   })
 
-  return c.json(withSuccess("Logged out"), 200)
+  return c.var.responder.success("Logged out", 200)
 })
 
 app.post(
@@ -467,7 +478,7 @@ app.post(
       issues,
     })
 
-    return c.json(withError("Invalid input", issues), 400)
+    return c.var.responder.error("Invalid input", issues, 400)
   }),
   timing({ totalDescription: "password-forgot-request" }),
   async (c): Promise<Response> => {
@@ -504,10 +515,8 @@ app.post(
 
     if (error) throw new Error(error.message)
 
-    return c.json(
-      withSuccess(
-        "If that email is registered, you’ll receive reset instructions shortly",
-      ),
+    return c.var.responder.created(
+      "If that email is registered, you’ll receive reset instructions shortly",
       200,
     )
   },
@@ -529,7 +538,7 @@ app.post(
       issues,
     })
 
-    return c.json(withError("Invalid input", issues), 400)
+    return c.var.responder.error("Invalid input", issues, 400)
   }),
   timing({ totalDescription: "password-reset-request" }),
   async (c): Promise<Response> => {
@@ -557,7 +566,7 @@ app.post(
         scope: "db.users",
       })
 
-      return c.json(withError("Reset token is invalid"), 400)
+      return c.var.responder.error("Reset token is invalid", {}, 400)
     }
 
     if (user.reset_expires < Math.floor(Date.now() / 1000)) {
@@ -566,7 +575,7 @@ app.post(
         scope: "db.users",
         input: { email: user.email },
       })
-      return c.json(withError("Reset token has expired"), 400)
+      return c.var.responder.error("Reset token has expired", {}, 400)
     }
 
     // hash the new password with existing salt (or generate new salt if you want)
@@ -588,7 +597,7 @@ app.post(
       input: { email: user.email },
     })
 
-    return c.json(withSuccess("Password has been successfully reset"), 200)
+    return c.var.responder.success("Password has been successfully reset", 200)
   },
 )
 
@@ -608,7 +617,7 @@ app.post(
       issues,
     })
 
-    return c.json(withError("Invalid input", issues), 400)
+    return c.var.responder.error("Invalid input", issues, 400)
   }),
   // 3) Timing instrumentation
   timing({ totalDescription: "login-request" }),
@@ -644,7 +653,7 @@ app.post(
         input: { email },
       })
 
-      return c.json(withError("Invalid email or password"), 401)
+      return c.var.responder.error("Invalid email or password", {}, 401)
     }
 
     // 6) Verify password
@@ -656,7 +665,7 @@ app.post(
         input: { email },
       })
 
-      return c.json(withError("Invalid email or password"), 401)
+      return c.var.responder.success("Invalid email or password", 401)
     }
 
     // 7) Issue tokens
@@ -689,7 +698,7 @@ app.post(
       input: { userId: row.id },
     })
 
-    return c.json(withSuccess("Logged in successfully"), 200)
+    return c.var.responder.success("Logged in successfully", 200)
   },
 )
 

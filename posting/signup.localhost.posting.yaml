@@ -2,7 +2,7 @@ name: Signup -- localhost
 method: POST
 url: http://localhost:8787/signup
 body:
-  content: '{"email":"gambi@bmail.cm","password":"123456789"}'
+  content: '{"email":"gambito@bmail.cm","password":"123456789"}'
   content_type: application/json
 headers:
 - name: x-thread-id

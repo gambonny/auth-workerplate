@@ -1,5 +1,7 @@
 import type { MiddlewareHandler } from "hono"
 import type { UnknownRecord } from "type-fest"
+import { makeResponder } from "./generators"
+import { createMiddleware } from "hono/factory"
 
 /**
  * Middleware that enforces presence of the `x-thread-id` header.
@@ -33,3 +35,8 @@ export const requireThread: MiddlewareHandler = async (c, next) => {
 
   await next()
 }
+
+export const responderMiddleware = createMiddleware(async (c, next) => {
+  c.set("responder", makeResponder())
+  await next()
+})

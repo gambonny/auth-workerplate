@@ -19,3 +19,17 @@ export type SignupWorkflowParams = {
 export type IResponseSuccess = InferOutput<typeof ResponseSuccessContract>
 export type IResponseError = InferOutput<typeof ResponseErrorContract>
 export type IResponseResult = InferOutput<typeof ResponseResult>
+
+export interface SuccessPayload<T> {
+  status: "success"
+  message: string
+  resource_url: string
+  data?: T
+}
+
+export interface ErrorPayload {
+  status: "error"
+  message: string
+  resource_url: string
+  issues?: Record<string, string[] | undefined> | undefined
+}

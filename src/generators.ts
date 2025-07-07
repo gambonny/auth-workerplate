@@ -1,4 +1,5 @@
-import type { IResponseSuccess, IResponseError } from "./types"
+import type { ContentfulStatusCode } from "hono/utils/http-status"
+import type { ErrorPayload, SuccessPayload } from "./types"
 import { getContext } from "hono/context-storage"
 
 export async function hashPassword(password: string, salt: string) {
@@ -42,33 +43,25 @@ export function generateOtp(): string {
     .padStart(8, "0")
 }
 
-export const withSuccess = <T extends object>(
-  message: string,
-  data?: T,
-): IResponseSuccess => {
+export function makeResponder() {
   const c = getContext()
-  const { origin, pathname } = new URL(c.req.url)
 
   return {
-    status: "success",
-    message,
-    resource_url: origin + pathname,
-    ...(data && Object.keys(data).length ? { data } : {}),
-  }
-}
-
-export const withError = (
-  message: string,
-  issues?: Record<string, string[] | undefined> | undefined,
-): IResponseError => {
-  const c = getContext()
-  const { origin, pathname } = new URL(c.req.url)
-
-  return {
-    status: "error",
-    message,
-    resource_url: origin + pathname,
-    issues,
+    success<T>(msg: string, data?: T, statusCode: ContentfulStatusCode = 200) {
+      const payload = buildPayload("success", msg, data)
+      return c.json(payload, statusCode)
+    },
+    error(
+      msg: string,
+      issues?: Record<string, string[] | undefined> | undefined,
+      statusCode: ContentfulStatusCode = 400,
+    ) {
+      const payload = buildPayload("error", msg, issues)
+      return c.json(payload, statusCode)
+    },
+    created<T>(msg: string, data?: T) {
+      return this.success(msg, data, 201)
+    },
   }
 }
 
@@ -78,4 +71,45 @@ export async function sha256hex(text: string): Promise<string> {
   return Array.from(new Uint8Array(hash))
     .map(b => b.toString(16).padStart(2, "0"))
     .join("")
+}
+
+function resourceUrl() {
+  const { origin, pathname } = new URL(getContext().req.url)
+  return origin + pathname
+}
+
+export function buildPayload<T>(
+  type: "success",
+  message: string,
+  data?: T,
+): SuccessPayload<T>
+
+export function buildPayload(
+  type: "error",
+  message: string,
+  issues?: Record<string, string[] | undefined> | undefined,
+): ErrorPayload
+
+export function buildPayload<T>(
+  type: "success" | "error",
+  message: string,
+  dataOrIssues?: T | Record<string, string[] | undefined> | undefined,
+): SuccessPayload<T> | ErrorPayload {
+  const c = getContext()
+  const { origin, pathname } = new URL(c.req.url)
+  const base = { status: type, message, resource_url: origin + pathname }
+
+  if (type === "success") {
+    return {
+      ...base,
+      ...(dataOrIssues && Object.keys(dataOrIssues as object).length
+        ? { data: dataOrIssues as T }
+        : {}),
+    }
+  }
+
+  return {
+    ...base,
+    issues: dataOrIssues as Record<string, string[] | undefined> | undefined,
+  }
 }
