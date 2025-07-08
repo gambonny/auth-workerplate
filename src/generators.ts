@@ -73,11 +73,6 @@ export async function sha256hex(text: string): Promise<string> {
     .join("")
 }
 
-function resourceUrl() {
-  const { origin, pathname } = new URL(getContext().req.url)
-  return origin + pathname
-}
-
 export function buildPayload<T>(
   type: "success",
   message: string,

@@ -118,15 +118,7 @@ app.use(trimTrailingSlash())
 app.use(contextStorage())
 app.use(responderMiddleware)
 // app.use(requireThread)
-// Block all AI bots
-app.use(
-  "*",
-  uaBlocker({
-    blocklist: aiBots,
-  }),
-)
-
-// Serve robots.txt to discourage AI bots
+app.use("*", uaBlocker({ blocklist: aiBots }))
 app.use("/robots.txt", useAiRobotsTxt())
 
 app.use(async (c, next) => {
@@ -144,6 +136,7 @@ app.use(async (c, next) => {
 app.post(
   //todo: max 3 tries
   "/otp/verify",
+  timing({ totalDescription: "otp-verify" }),
   validator("json", async (body, c) => {
     const validation = v.safeParse(otpContract, body)
     if (validation.success) return validation.output
@@ -160,9 +153,7 @@ app.post(
 
     return c.var.responder("Input invalid", issues, 400)
   }),
-  timing({ totalDescription: "full-request" }),
   async (c): Promise<Response> => {
-    c.header("Timing-Allow-Origin", "http://localhost:5173")
     const { email, otp } = c.req.valid("json")
     const logger = c.var.getLogger({ route: "auth.otp.handler" })
 
@@ -224,7 +215,6 @@ app.post(
         const accessToken = await jwtSign(accessPayload, "secretito")
         const refreshToken = await jwtSign(refreshPayload, "secretito")
 
-        logger.warn("access token", { accessPayload })
         setCookie(c, "token", accessToken, {
           httpOnly: true,
           secure: true,
@@ -265,6 +255,7 @@ app.post(
 
 app.post(
   "/signup",
+  timing({ totalDescription: "signup-request" }),
   validator("json", async (body, c) => {
     const validation = v.safeParse(signupContract, body)
     if (validation.success) return validation.output
@@ -282,9 +273,7 @@ app.post(
     const r = makeResponder()
     return c.json(r.error("Input invalid", issues), 400)
   }),
-  timing({ totalDescription: "full-request" }),
   async (c): Promise<Response> => {
-    c.header("Timing-Allow-Origin", "http://localhost:5173")
     const { email, password } = c.req.valid("json")
     const logger = c.var.getLogger({ route: "auth.signup.handler" })
 
@@ -370,45 +359,50 @@ app.post(
   },
 )
 
-app.post("/refresh", async c => {
-  const refreshToken = getCookie(c, "refresh_token")
-  if (!refreshToken)
-    return c.var.responder.error("Missing refresh token", {}, 401)
+app.post(
+  "/refresh",
+  timing({ totalDescription: "refresh-request" }),
+  async c => {
+    const refreshToken = getCookie(c, "refresh_token")
+    if (!refreshToken)
+      return c.var.responder.error("Missing refresh token", {}, 401)
 
-  const isValid = await jwtVerify(refreshToken, "secretito")
-  if (!isValid) return c.var.responder.error("Invalid refresh token", {}, 401)
+    const isValid = await jwtVerify(refreshToken, "secretito")
+    if (!isValid) return c.var.responder.error("Invalid refresh token", {}, 401)
 
-  const decoded = jwtDecode(refreshToken).payload as {
-    id?: string
-    email?: string
-  }
+    const decoded = jwtDecode(refreshToken).payload as {
+      id?: string
+      email?: string
+    }
 
-  if (!decoded?.email) return c.var.responder.error("Malformed token", {}, 400)
+    if (!decoded?.email)
+      return c.var.responder.error("Malformed token", {}, 400)
 
-  const newAccessToken = await jwtSign(
-    {
-      id: decoded.id,
-      email: decoded.email,
-      exp: Math.floor(Date.now() / 1000) + 60 * 60,
-    },
-    "secretito",
-  )
+    const newAccessToken = await jwtSign(
+      {
+        id: decoded.id,
+        email: decoded.email,
+        exp: Math.floor(Date.now() / 1000) + 60 * 60,
+      },
+      "secretito",
+    )
 
-  setCookie(c, "token", newAccessToken, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "None",
-    maxAge: 3600,
-    path: "/",
-  })
+    setCookie(c, "token", newAccessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      maxAge: 3600,
+      path: "/",
+    })
 
-  return c.var.responder.success("Access token refreshed")
-})
+    return c.var.responder.success("Access token refreshed")
+  },
+)
 
 //todo: cache response
 app.get(
   "/me",
-  timing({ totalDescription: "full-request" }),
+  timing({ totalDescription: "me-request" }),
   async (c): Promise<Response> => {
     const logger = c.var.getLogger({ route: "auth.me.handler" })
     const token = getCookie(c, "token")
@@ -429,7 +423,7 @@ app.get(
   },
 )
 
-app.post("/logout", timing({ totalDescription: "full-request" }), async c => {
+app.post("/logout", timing({ totalDescription: "logout-request" }), async c => {
   const logger = c.var.getLogger({ route: "auth.logout.handler" })
 
   logger.info("user:logout", {
@@ -464,6 +458,7 @@ app.post("/logout", timing({ totalDescription: "full-request" }), async c => {
 
 app.post(
   "/password/forgot",
+  timing({ totalDescription: "password-forgot-request" }),
   validator("json", async (body, c) => {
     const validation = v.safeParse(forgotPasswordContract, body)
     if (validation.success) return validation.output
@@ -480,7 +475,6 @@ app.post(
 
     return c.var.responder.error("Invalid input", issues, 400)
   }),
-  timing({ totalDescription: "password-forgot-request" }),
   async (c): Promise<Response> => {
     const { email } = c.req.valid("json")
     const logger = c.var.getLogger({ route: "auth.forgot.handler" })
@@ -524,6 +518,7 @@ app.post(
 
 app.post(
   "/password/reset",
+  timing({ totalDescription: "password-reset-request" }),
   validator("json", async (body, c) => {
     const validation = v.safeParse(resetPasswordContract, body)
     if (validation.success) return validation.output
@@ -540,7 +535,6 @@ app.post(
 
     return c.var.responder.error("Invalid input", issues, 400)
   }),
-  timing({ totalDescription: "password-reset-request" }),
   async (c): Promise<Response> => {
     const logger = c.var.getLogger({ route: "auth.reset.handler" })
     const { token, password } = c.req.valid("json")
@@ -603,6 +597,7 @@ app.post(
 
 app.post(
   "/login",
+  timing({ totalDescription: "login-request" }),
   validator("json", async (body, c) => {
     const validation = v.safeParse(loginContract, body)
     if (validation.success) return validation.output
@@ -619,8 +614,6 @@ app.post(
 
     return c.var.responder.error("Invalid input", issues, 400)
   }),
-  // 3) Timing instrumentation
-  timing({ totalDescription: "login-request" }),
   async (c): Promise<Response> => {
     const logger = c.var.getLogger({ route: "auth.login.handler" })
     const { email, password } = c.req.valid("json")

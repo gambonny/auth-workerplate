@@ -19,6 +19,7 @@ import { createMiddleware } from "hono/factory"
  * This middleware should run first, before logger setup or route handling.
  */
 export const requireThread: MiddlewareHandler = async (c, next) => {
+  c.header("Timing-Allow-Origin", "http://localhost:5173")
   const thread = c.req.header("x-thread-id")
 
   if (!thread) {
