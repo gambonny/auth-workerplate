@@ -7,10 +7,13 @@ export async function storeOtp(
   email: string,
   otp: string,
 ) {
-  const key = `otp:${email.toLowerCase()}`
+  const key = `otp:${email.trim().toLowerCase()}`
   const value = JSON.stringify({ otp, attempts: 0 })
+  const expiration = Temporal.Now.instant().add("1 hour").epochMilliseconds
+  console.info("expiration: ", expiration)
+  console.info("key: ", key)
   await env.OTP_STORE.put(key, value, {
-    expiration: Temporal.Now.instant().add("1 hour").epochMilliseconds,
+    expiration,
   })
 }
 
