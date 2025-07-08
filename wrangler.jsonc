@@ -30,6 +30,12 @@
       "class_name": "SignupWorkflow"
     }
   ],
+  "kv_namespaces": [
+    {
+      "binding": "OTP_STORE",
+      "id": "df507049ee9c4e49b2629864c432f965"
+    }
+  ],
   "services" : [{
     "service": "auth-sentinel",
     "binding": "AUTH_SENTINEL"
