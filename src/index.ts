@@ -678,7 +678,7 @@ app.post(
         input: { email },
       })
 
-      return c.var.responder.success("Invalid email or password", 401)
+      return c.var.responder.error("Invalid email or password", {}, 401)
     }
 
     // 7) Issue tokens
