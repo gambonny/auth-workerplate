@@ -44,6 +44,7 @@ import type { UnknownRecord } from "type-fest"
 import { Resend } from "resend"
 import { contextStorage } from "hono/context-storage"
 import { responderMiddleware } from "./middlewares"
+import { verifyOtp } from "./otp"
 
 type TokenSentinelService = {
   validateToken: (token: string) => Promise<false | UnknownRecord>
@@ -163,11 +164,44 @@ app.post(
       input: { email },
     })
 
+    const { ok, reason } = await verifyOtp(c.env, email, otp)
+
+    if (!ok) {
+      switch (reason) {
+        case "expired":
+          logger.warn("otp:expired", {
+            event: "otp.expired",
+            scope: "kv.otp",
+            input: { email, otp }, //TODO: opaque these values
+          })
+
+          return c.var.responder.error(
+            "OTP has expired, please request a new one",
+            {},
+            410,
+          )
+        case "too_many":
+          logger.warn("otp:too many attempts", {
+            event: "otp.blocked",
+            scope: "kv.otp",
+            input: { email, otp }, //TODO: opaque these values
+          })
+
+          return c.var.responder.error(
+            "Too many attempts, please try again later",
+            {},
+            429,
+          )
+        default:
+          return c.var.responder.error("OTP is invalid", {}, 400)
+      }
+    }
+
     try {
       const user = await c.env.DB.prepare(
-        "SELECT id FROM users WHERE email = ? AND otp = ? AND active = false",
+        "SELECT id FROM users WHERE email = ?  AND active = false",
       )
-        .bind(email, otp)
+        .bind(email)
         .first()
 
       if (!user) {
@@ -184,9 +218,9 @@ app.post(
       }
 
       const result = await c.env.DB.prepare(
-        "UPDATE users SET active = true WHERE email = ? and otp = ?",
+        "UPDATE users SET active = true WHERE email = ?",
       )
-        .bind(email, otp)
+        .bind(email)
         .run()
 
       if (result.meta.changes === 1) {
