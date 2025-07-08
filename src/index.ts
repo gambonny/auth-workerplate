@@ -22,7 +22,6 @@ import {
   loginContract,
   otpContract,
   resetPasswordContract,
-  signupContract,
 } from "./contracts"
 import * as generator from "./generators"
 // import { requireThread } from "./middlewares"
@@ -38,8 +37,10 @@ import type { UnknownRecord } from "type-fest"
 import { Resend } from "resend"
 import { contextStorage } from "hono/context-storage"
 import { responderMiddleware } from "./middlewares"
-import { storeOtp, verifyOtp } from "./otp"
+import { verifyOtp } from "./otp"
 import { removeToken, storeToken, verifyToken } from "./reset-password"
+/// ---
+import routes from "./routes"
 
 type TokenSentinelService = {
   validateToken: (token: string) => Promise<false | UnknownRecord>
@@ -274,112 +275,6 @@ app.post(
       })
 
       return c.var.responder.error("Unkown error", {}, 500)
-    }
-  },
-)
-
-app.post(
-  "/signup",
-  timing({ totalDescription: "signup-request" }),
-  validator("json", async (body, c) => {
-    const validation = v.safeParse(signupContract, body)
-    if (validation.success) return validation.output
-
-    const logger = c.var.getLogger({ route: "auth.signup.validator" })
-    const issues = v.flatten(validation.issues).nested
-
-    logger.warn("signup:validation:failed", {
-      event: "validation.failed",
-      scope: "validator.schema",
-      input: validation.output,
-      issues,
-    })
-
-    return c.var.responder.error("Input invalid", issues, 400)
-  }),
-  async (c): Promise<Response> => {
-    const { email, password } = c.req.valid("json")
-    const logger = c.var.getLogger({ route: "auth.signup.handler" })
-
-    logger.info("signup:started", {
-      event: "handler.started",
-      scope: "handler.init",
-      input: { email },
-    })
-
-    try {
-      logger.debug("generating:credentials", {
-        event: "crypto.init",
-        scope: "crypto.password",
-      })
-
-      const generatedSalt = generator.salt()
-      const passwordHash = await generator.hashPassword(password, generatedSalt)
-      const otp = generator.generateOtp()
-
-      logger.debug("preparing:user:registration", {
-        event: "db.insert.started",
-        scope: "db.users",
-        input: { email },
-      })
-
-      const result = await c.env.DB.prepare(
-        "INSERT INTO users (email, password_hash, salt) VALUES (?, ?, ?)",
-      )
-        .bind(email, passwordHash, generatedSalt)
-        .run()
-
-      setMetric(c, "db.duration", result.meta.duration)
-      logger.info("user:registered", {
-        event: "db.insert.success",
-        scope: "db.users",
-        input: {
-          email,
-          db: {
-            duration: result.meta.duration,
-          },
-        },
-      })
-
-      await storeOtp(c.env, email, otp)
-      const workflow = await c.env.SIGNUP_WFW.create({ params: { email, otp } })
-
-      logger.debug("workflow:created", {
-        event: "workflow.created",
-        scope: "db.users",
-        workflow,
-      })
-
-      return c.var.responder.created(
-        "User registered, email with otp has been sent",
-      )
-    } catch (err) {
-      if (err instanceof Error) {
-        if (err.message.includes("UNIQUE constraint failed")) {
-          logger.warn("user:registration:failed:email:taken", {
-            event: "db.insert.conflict",
-            scope: "db.users",
-            reason: "email taken",
-            input: { email },
-          })
-
-          return c.var.responder.error(
-            "Invalid input",
-            { email: ["User already exists"] },
-            409,
-          )
-        }
-      }
-
-      const errorMessage = err instanceof Error ? err.message : String(err)
-
-      logger.error("user:registration:error", {
-        event: "signup.error",
-        scope: "db.users",
-        error: errorMessage,
-      })
-
-      return c.var.responder.error(errorMessage, {}, 500)
     }
   },
 )
@@ -718,5 +613,7 @@ app.post(
 app.notFound(c => {
   return c.text("Not found", 404)
 })
+
+app.route("/", routes)
 
 export default app

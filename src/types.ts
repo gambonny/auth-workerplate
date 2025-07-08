@@ -1,3 +1,8 @@
+import type { TimingVariables } from "hono/timing"
+import type { GetLoggerFn } from "@gambonny/cflo"
+
+import type { Responder } from "@/lib/responder"
+///----
 import type { InferOutput } from "valibot"
 import type {
   ResponseErrorContract,
@@ -32,4 +37,16 @@ export interface ErrorPayload {
   message: string
   resource_url: string
   issues?: Record<string, string[] | undefined> | undefined
+}
+
+/// ----
+export type ValidationIssues = Record<string, string[] | undefined> | undefined
+
+export type AppEnv = {
+  Bindings: CloudflareBindings
+  Variables: {
+    thread: string
+    getLogger: GetLoggerFn
+    responder: Responder
+  } & TimingVariables
 }

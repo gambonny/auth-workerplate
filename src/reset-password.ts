@@ -33,6 +33,5 @@ export async function verifyToken(env: Cloudflare.Env, submitted: string) {
     return false
   }
 
-  await env.OTP_STORE.delete(key)
   return record.email
 }
