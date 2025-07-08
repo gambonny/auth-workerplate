@@ -351,7 +351,7 @@ app.post(
         },
       })
 
-      storeOtp(c.env, email, otp)
+      await storeOtp(c.env, email, otp)
       const workflow = await c.env.SIGNUP_WFW.create({ params: { email, otp } })
 
       logger.debug("workflow:created", {
