@@ -45,6 +45,7 @@ import { Resend } from "resend"
 import { contextStorage } from "hono/context-storage"
 import { responderMiddleware } from "./middlewares"
 import { storeOtp, verifyOtp } from "./otp"
+import { storeToken, verifyToken } from "./reset-password"
 
 type TokenSentinelService = {
   validateToken: (token: string) => Promise<false | UnknownRecord>
@@ -187,11 +188,7 @@ app.post(
             input: { email, otp }, //TODO: opaque these values
           })
 
-          return c.var.responder.error(
-            "Too many attempts, please try again later",
-            {},
-            429,
-          )
+          return c.var.responder.error("Too many attempts", {}, 429)
         default:
           return c.var.responder.error("OTP is invalid", {}, 400)
       }
@@ -517,20 +514,12 @@ app.post(
     // generate token + hash + expiry
     const rawToken = crypto.randomUUID()
     const tokenHash = await sha256hex(rawToken)
-    const expires = Math.floor(Date.now() / 1000) + 60 * 60 // 1h
 
-    // store only the hash + expiry
-    await c.env.DB.prepare(
-      `UPDATE users
-         SET reset_token_hash = ?, reset_expires = ?
-       WHERE email = ?`,
-    )
-      .bind(tokenHash, expires, email)
-      .run()
+    await storeToken(c.env, email, tokenHash)
 
     logger.info("password:forgot:token-generated", {
       event: "token.generated",
-      scope: "db.users",
+      scope: "kv.password",
       input: { email },
     })
 
@@ -576,43 +565,46 @@ app.post(
 
     // hash the provided token to compare against stored hash
     const hashedToken = await sha256hex(token)
+    const email = await verifyToken(c.env, hashedToken)
 
-    // try to find a user with that reset_token_hash
+    if (!email) {
+      logger.warn("reset-token:expired", {
+        event: "reset-token.expired",
+        scope: "kv.reset-token",
+        input: { email }, //TODO: opaque these values
+      })
+
+      return c.var.responder.error(
+        "Token has expired, please request a new one",
+        {},
+        410,
+      )
+    }
+
+    // try to find a user with that email
     const user = await c.env.DB.prepare(
-      "SELECT id, email, salt, reset_expires FROM users WHERE reset_token_hash = ?",
+      "SELECT id, salt FROM users WHERE email = ?",
     )
-      .bind(hashedToken)
+      .bind(email)
       .first<{
         id: number
-        email: string
         salt: string
-        reset_expires: number
       }>()
 
     if (!user) {
-      logger.warn("password:reset:failed:notfound", {
-        event: "reset.token.notfound",
+      logger.warn("password:reset:failed:user:notfound", {
+        event: "email.notfound",
         scope: "db.users",
       })
 
-      return c.var.responder.error("Reset token is invalid", {}, 400)
-    }
-
-    if (user.reset_expires < Math.floor(Date.now() / 1000)) {
-      logger.warn("password:reset:failed:expired", {
-        event: "reset.token.expired",
-        scope: "db.users",
-        input: { email: user.email },
-      })
-      return c.var.responder.error("Reset token has expired", {}, 400)
+      return c.var.responder.error("User not found", {}, 404)
     }
 
     // hash the new password with existing salt (or generate new salt if you want)
     const passwordHash = await hashPassword(password, user.salt)
 
     const result = await c.env.DB.prepare(
-      `UPDATE users
-         SET password_hash = ?, reset_token_hash = NULL, reset_expires = NULL
+      `UPDATE users SET password_hash = ?
        WHERE id = ?`,
     )
       .bind(passwordHash, user.id)
@@ -623,7 +615,6 @@ app.post(
     logger.info("password:reset:success", {
       event: "password.reset.success",
       scope: "db.users",
-      input: { email: user.email },
     })
 
     return c.var.responder.success("Password has been successfully reset", 200)
