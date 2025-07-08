@@ -24,13 +24,7 @@ import {
   resetPasswordContract,
   signupContract,
 } from "./contracts"
-import {
-  generateOtp,
-  hashPassword,
-  salt,
-  sha256hex,
-  makeResponder,
-} from "./generators"
+import * as generator from "./generators"
 // import { requireThread } from "./middlewares"
 
 import {
@@ -45,7 +39,7 @@ import { Resend } from "resend"
 import { contextStorage } from "hono/context-storage"
 import { responderMiddleware } from "./middlewares"
 import { storeOtp, verifyOtp } from "./otp"
-import { storeToken, verifyToken } from "./reset-password"
+import { removeToken, storeToken, verifyToken } from "./reset-password"
 
 type TokenSentinelService = {
   validateToken: (token: string) => Promise<false | UnknownRecord>
@@ -105,7 +99,7 @@ const app = new Hono<{
   Variables: {
     thread: string
     getLogger: GetLoggerFn
-    responder: ReturnType<typeof makeResponder>
+    responder: ReturnType<typeof generator.makeResponder>
   } & TimingVariables
 }>()
 
@@ -153,7 +147,7 @@ app.post(
       issues,
     })
 
-    return c.var.responder("Input invalid", issues, 400)
+    return c.var.responder.error("Input invalid", issues, 400)
   }),
   async (c): Promise<Response> => {
     const { email, otp } = c.req.valid("json")
@@ -301,8 +295,7 @@ app.post(
       issues,
     })
 
-    const r = makeResponder()
-    return c.json(r.error("Input invalid", issues), 400)
+    return c.var.responder.error("Input invalid", issues, 400)
   }),
   async (c): Promise<Response> => {
     const { email, password } = c.req.valid("json")
@@ -320,9 +313,9 @@ app.post(
         scope: "crypto.password",
       })
 
-      const generatedSalt = salt()
-      const passwordHash = await hashPassword(password, generatedSalt)
-      const otp = generateOtp()
+      const generatedSalt = generator.salt()
+      const passwordHash = await generator.hashPassword(password, generatedSalt)
+      const otp = generator.generateOtp()
 
       logger.debug("preparing:user:registration", {
         event: "db.insert.started",
@@ -331,9 +324,9 @@ app.post(
       })
 
       const result = await c.env.DB.prepare(
-        "INSERT INTO users (email, password_hash, salt, otp) VALUES (?, ?, ?, ?)",
+        "INSERT INTO users (email, password_hash, salt) VALUES (?, ?, ?)",
       )
-        .bind(email, passwordHash, generatedSalt, otp)
+        .bind(email, passwordHash, generatedSalt)
         .run()
 
       setMetric(c, "db.duration", result.meta.duration)
@@ -513,7 +506,7 @@ app.post(
 
     // generate token + hash + expiry
     const rawToken = crypto.randomUUID()
-    const tokenHash = await sha256hex(rawToken)
+    const tokenHash = await generator.sha256hex(rawToken)
 
     await storeToken(c.env, email, tokenHash)
 
@@ -564,7 +557,7 @@ app.post(
     const { token, password } = c.req.valid("json")
 
     // hash the provided token to compare against stored hash
-    const hashedToken = await sha256hex(token)
+    const hashedToken = await generator.sha256hex(token)
     const email = await verifyToken(c.env, hashedToken)
 
     if (!email) {
@@ -601,7 +594,7 @@ app.post(
     }
 
     // hash the new password with existing salt (or generate new salt if you want)
-    const passwordHash = await hashPassword(password, user.salt)
+    const passwordHash = await generator.hashPassword(password, user.salt)
 
     const result = await c.env.DB.prepare(
       `UPDATE users SET password_hash = ?
@@ -617,6 +610,7 @@ app.post(
       scope: "db.users",
     })
 
+    await removeToken(c.env, hashedToken)
     return c.var.responder.success("Password has been successfully reset", 200)
   },
 )
@@ -676,7 +670,7 @@ app.post(
     }
 
     // 6) Verify password
-    const computed = await hashPassword(password, row.salt)
+    const computed = await generator.hashPassword(password, row.salt)
     if (computed !== row.password_hash) {
       logger.warn("login:failed", {
         event: "login.invalid-credentials",

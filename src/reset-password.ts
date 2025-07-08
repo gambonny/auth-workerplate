@@ -1,7 +1,5 @@
 import { Temporal } from "@js-temporal/polyfill"
 
-const MAX_OTP_ATTEMPTS = 1
-
 export async function storeToken(
   env: Cloudflare.Env,
   email: string,
@@ -14,6 +12,11 @@ export async function storeToken(
     expiration:
       Temporal.Now.instant().add({ hours: 1 }).epochMilliseconds / 1000,
   })
+}
+
+export async function removeToken(env: Cloudflare.Env, token: string) {
+  const key = `reset:${token.trim().toLowerCase()}`
+  await env.OTP_STORE.delete(key)
 }
 
 export async function verifyToken(env: Cloudflare.Env, submitted: string) {
