@@ -36,7 +36,7 @@ export async function verifyOtp(
   }
 
   // 1) enforce max-attempts
-  if (record.attempts >= MAX_OTP_ATTEMPTS) {
+  if (record.attempts > MAX_OTP_ATTEMPTS) {
     await env.OTP_STORE.delete(key)
     return { ok: false as const, reason: "too_many" }
   }
