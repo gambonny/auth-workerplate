@@ -44,7 +44,7 @@ import type { UnknownRecord } from "type-fest"
 import { Resend } from "resend"
 import { contextStorage } from "hono/context-storage"
 import { responderMiddleware } from "./middlewares"
-import { verifyOtp } from "./otp"
+import { storeOtp, verifyOtp } from "./otp"
 
 type TokenSentinelService = {
   validateToken: (token: string) => Promise<false | UnknownRecord>
@@ -351,6 +351,7 @@ app.post(
         },
       })
 
+      storeOtp(c.env, email, otp)
       const workflow = await c.env.SIGNUP_WFW.create({ params: { email, otp } })
 
       logger.debug("workflow:created", {

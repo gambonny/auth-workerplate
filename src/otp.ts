@@ -43,7 +43,6 @@ export async function verifyOtp(
 
   // 2) check the code
   if (record.otp !== submitted) {
-    // increment attempts and write back, preserving TTL
     record.attempts++
     await env.OTP_STORE.put(key, JSON.stringify(record))
     return { ok: false as const, reason: "invalid" }
