@@ -2,7 +2,7 @@ import { Temporal } from "@js-temporal/polyfill"
 import * as v from "valibot"
 
 import type { OnErrorCallback } from "@/types"
-import otpContract from "./contract"
+import otpRecordContract from "./contract"
 
 export function generateOtp(): string {
   return Math.floor(Math.random() * 100_000_000)
@@ -20,7 +20,7 @@ export async function storeOtp(
     success,
     issues,
     output: record,
-  } = v.safeParse(otpContract, {
+  } = v.safeParse(otpRecordContract, {
     otp,
     attempts: 0,
   })
@@ -55,7 +55,7 @@ export async function verifyOtp(
     success,
     output: record,
     issues,
-  } = v.safeParse(otpContract, await env.OTP_STORE.get(key, "json"))
+  } = v.safeParse(otpRecordContract, await env.OTP_STORE.get(key, "json"))
 
   if (!success) {
     await env.OTP_STORE.delete(key)

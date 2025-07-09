@@ -9,7 +9,7 @@ import { sign as jwtSign } from "@tsndr/cloudflare-worker-jwt"
 import { verifyOtp } from "@/lib/otp"
 import type { AppEnv } from "@/types"
 
-import { otpContract } from "./contracts"
+import { verifyOtpContract } from "./contracts"
 
 export const otpRoute = new Hono<AppEnv>()
 
@@ -17,7 +17,7 @@ otpRoute.post(
   "/otp/verify",
   timing({ totalDescription: "otp-verify-request" }),
   validator("json", async (body, c) => {
-    const validation = v.safeParse(otpContract, body)
+    const validation = v.safeParse(verifyOtpContract, body)
     if (validation.success) return validation.output
 
     const logger = c.var.getLogger({ route: "otp.verify.validator" })
@@ -51,7 +51,7 @@ otpRoute.post(
       })
     })
 
-    if (!verified) return c.var.responder.error("OTP invalid")
+    if (!verified) return c.var.responder.error("activation failed")
 
     try {
       const user = await c.env.DB.prepare(
@@ -66,7 +66,7 @@ otpRoute.post(
           scope: "db.users",
           input: { email, otp }, //TODO: opaque these values
         })
-        return c.var.responder.error("an error occurred", {}, 400)
+        return c.var.responder.error("activation failed", {}, 400)
       }
 
       const result = await c.env.DB.prepare(
