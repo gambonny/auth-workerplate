@@ -75,17 +75,33 @@ signupRoute.post(
         },
       })
 
-      await storeOtp(c.env, email, otp)
-      const workflow = await c.env.SIGNUP_WFW.create({ params: { email, otp } })
-
-      logger.debug("workflow:created", {
-        event: "workflow.created",
-        scope: "workflow.signup",
-        workflow: workflow.id,
+      const otpStored = await storeOtp(c.env, email, otp, issues => {
+        logger.error("otp:store:failed", {
+          event: "kv.otp.storing.failed",
+          scope: "vk.otp",
+          input: { email },
+          issues,
+        })
       })
 
-      return c.var.responder.created(
-        "User registered, email with otp has been sent",
+      if (otpStored) {
+        const workflow = await c.env.SIGNUP_WFW.create({
+          params: { email, otp },
+        })
+
+        logger.debug("workflow:created", {
+          event: "workflow.created",
+          scope: "workflow.signup",
+          workflow: workflow.id,
+        })
+
+        return c.var.responder.created(
+          "User registered, email with otp has been sent",
+        )
+      }
+
+      return c.var.responder.error(
+        "User registerd but email with otp couldn't be sent",
       )
     } catch (err) {
       if (err instanceof Error) {

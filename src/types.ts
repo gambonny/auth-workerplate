@@ -40,8 +40,6 @@ export interface ErrorPayload {
 }
 
 /// ----
-export type ValidationIssues = Record<string, string[] | undefined> | undefined
-
 export type AppEnv = {
   Bindings: CloudflareBindings
   Variables: {
@@ -50,3 +48,6 @@ export type AppEnv = {
     responder: Responder
   } & TimingVariables
 }
+
+export type ValidationIssues = Record<string, string[] | undefined> | undefined
+export type OnErrorCallback = (issues: ValidationIssues) => void

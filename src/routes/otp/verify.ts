@@ -42,33 +42,17 @@ otpRoute.post(
       input: { email },
     })
 
-    const { ok, reason } = await verifyOtp(c.env, email, otp)
+    const verified = await verifyOtp(c.env, email, otp, issues => {
+      logger.warn("otp:verification:failed", {
+        event: "otp.verification.failed",
+        scope: "kv.otp",
+        input: { email, otp }, //TODO: opaque these values
+        issues,
+      })
+    })
 
-    if (!ok) {
-      switch (reason) {
-        case "expired":
-          logger.warn("otp:expired", {
-            event: "otp.expired",
-            scope: "kv.otp",
-            input: { email, otp }, //TODO: opaque these values
-          })
-
-          return c.var.responder.error(
-            "OTP has expired, please request a new one",
-            {},
-            410,
-          )
-        case "too_many":
-          logger.warn("otp:too many attempts", {
-            event: "otp.blocked",
-            scope: "kv.otp",
-            input: { email, otp }, //TODO: opaque these values
-          })
-
-          return c.var.responder.error("Too many attempts", {}, 429)
-        default:
-          return c.var.responder.error("OTP is invalid", {}, 400)
-      }
+    if (!verified) {
+      return c.var.responder.error("OTP has expired, please request a new one")
     }
 
     try {
