@@ -8,6 +8,7 @@ import { sign as jwtSign } from "@tsndr/cloudflare-worker-jwt"
 
 import { verifyOtp } from "@/lib/otp"
 import type { AppEnv } from "@/types"
+import type { UserPayload } from "@routes/auth/contracts"
 
 import { verifyOtpContract } from "./contracts"
 
@@ -88,13 +89,13 @@ otpRoute.post(
           id: user.id,
           email,
           exp: Math.floor(Date.now() / 1000) + 60 * 60,
-        }
+        } satisfies UserPayload
 
         const refreshPayload = {
           id: user.id,
           email,
           exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 14,
-        }
+        } satisfies UserPayload
 
         const accessToken = await jwtSign(accessPayload, "secretito") //TODO:
         const refreshToken = await jwtSign(refreshPayload, "secretito")

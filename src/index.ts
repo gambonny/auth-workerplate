@@ -9,11 +9,7 @@ import { trimTrailingSlash } from "hono/trailing-slash"
 import { validator } from "hono/validator"
 import * as v from "valibot"
 
-import {
-  sign as jwtSign,
-  decode as jwtDecode,
-  verify as jwtVerify,
-} from "@tsndr/cloudflare-worker-jwt"
+import { sign as jwtSign } from "@tsndr/cloudflare-worker-jwt"
 
 import { getCookie, setCookie } from "hono/cookie"
 import { useLogger } from "@gambonny/cflo"
@@ -119,46 +115,6 @@ app.use(async (c, next) => {
     },
   })(c, next)
 })
-
-app.post(
-  "/refresh",
-  timing({ totalDescription: "refresh-request" }),
-  async c => {
-    const refreshToken = getCookie(c, "refresh_token")
-    if (!refreshToken)
-      return c.var.responder.error("Missing refresh token", {}, 401)
-
-    const isValid = await jwtVerify(refreshToken, "secretito")
-    if (!isValid) return c.var.responder.error("Invalid refresh token", {}, 401)
-
-    const decoded = jwtDecode(refreshToken).payload as {
-      id?: string
-      email?: string
-    }
-
-    if (!decoded?.email)
-      return c.var.responder.error("Malformed token", {}, 400)
-
-    const newAccessToken = await jwtSign(
-      {
-        id: decoded.id,
-        email: decoded.email,
-        exp: Math.floor(Date.now() / 1000) + 60 * 60,
-      },
-      "secretito",
-    )
-
-    setCookie(c, "token", newAccessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      maxAge: 3600,
-      path: "/",
-    })
-
-    return c.var.responder.success("Access token refreshed")
-  },
-)
 
 //todo: cache response
 app.get(
