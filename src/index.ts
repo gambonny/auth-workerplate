@@ -11,7 +11,7 @@ import * as v from "valibot"
 
 import { sign as jwtSign } from "@tsndr/cloudflare-worker-jwt"
 
-import { getCookie, setCookie } from "hono/cookie"
+import { setCookie } from "hono/cookie"
 import { useLogger } from "@gambonny/cflo"
 import {
   forgotPasswordContract,
@@ -27,17 +27,12 @@ import {
   type WorkflowStep,
 } from "cloudflare:workers"
 import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "./types"
-import type { UnknownRecord } from "type-fest"
 import { Resend } from "resend"
 import { contextStorage } from "hono/context-storage"
 import { responderMiddleware } from "./middlewares"
 import { removeToken, storeToken, verifyToken } from "./reset-password"
 /// ---
 import routes from "./routes"
-
-type TokenSentinelService = {
-  validateToken: (token: string) => Promise<false | UnknownRecord>
-}
 
 export class SignupWorkflow extends WorkflowEntrypoint<
   SignupWorkflowEnv,
@@ -115,30 +110,6 @@ app.use(async (c, next) => {
     },
   })(c, next)
 })
-
-//todo: cache response
-app.get(
-  "/me",
-  timing({ totalDescription: "me-request" }),
-  async (c): Promise<Response> => {
-    const logger = c.var.getLogger({ route: "auth.me.handler" })
-    const token = getCookie(c, "token")
-
-    if (!token) {
-      logger.error("Invalid token")
-      return c.var.responder.success("token invalid", 401)
-    }
-
-    const sentinel = c.env.AUTH_SENTINEL as unknown as TokenSentinelService
-    const user = await sentinel.validateToken(token)
-
-    if (user) {
-      return c.var.responder.success("token active", user)
-    }
-
-    return c.var.responder.error("token invalid", {}, 401)
-  },
-)
 
 app.post("/logout", timing({ totalDescription: "logout-request" }), async c => {
   const logger = c.var.getLogger({ route: "auth.logout.handler" })
