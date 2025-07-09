@@ -51,9 +51,7 @@ otpRoute.post(
       })
     })
 
-    if (!verified) {
-      return c.var.responder.error("OTP has expired, please request a new one")
-    }
+    if (!verified) return c.var.responder.error("OTP invalid")
 
     try {
       const user = await c.env.DB.prepare(
