@@ -80,7 +80,7 @@ signupRoute.post(
 
       logger.debug("workflow:created", {
         event: "workflow.created",
-        scope: "db.users",
+        scope: "workflow.signup",
         workflow: workflow.id,
       })
 

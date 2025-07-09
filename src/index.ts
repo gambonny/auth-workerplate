@@ -16,11 +16,10 @@ import {
 } from "@tsndr/cloudflare-worker-jwt"
 
 import { getCookie, setCookie } from "hono/cookie"
-import { type GetLoggerFn, useLogger } from "@gambonny/cflo"
+import { useLogger } from "@gambonny/cflo"
 import {
   forgotPasswordContract,
   loginContract,
-  otpContract,
   resetPasswordContract,
 } from "./contracts"
 import * as generator from "./generators"
@@ -31,13 +30,11 @@ import {
   type WorkflowEvent,
   type WorkflowStep,
 } from "cloudflare:workers"
-import type { SignupWorkflowEnv, SignupWorkflowParams } from "./types"
-import type { TimingVariables } from "hono/timing"
+import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "./types"
 import type { UnknownRecord } from "type-fest"
 import { Resend } from "resend"
 import { contextStorage } from "hono/context-storage"
 import { responderMiddleware } from "./middlewares"
-import { verifyOtp } from "./otp"
 import { removeToken, storeToken, verifyToken } from "./reset-password"
 /// ---
 import routes from "./routes"
@@ -95,14 +92,7 @@ export class SignupWorkflow extends WorkflowEntrypoint<
   }
 }
 
-const app = new Hono<{
-  Bindings: CloudflareBindings
-  Variables: {
-    thread: string
-    getLogger: GetLoggerFn
-    responder: ReturnType<typeof generator.makeResponder>
-  } & TimingVariables
-}>()
+const app = new Hono<AppEnv>()
 
 app.use(
   cors({
@@ -129,155 +119,6 @@ app.use(async (c, next) => {
     },
   })(c, next)
 })
-
-app.post(
-  //todo: max 3 tries
-  "/otp/verify",
-  timing({ totalDescription: "otp-verify" }),
-  validator("json", async (body, c) => {
-    const validation = v.safeParse(otpContract, body)
-    if (validation.success) return validation.output
-
-    const logger = c.var.getLogger({ route: "auth.otp.validator" })
-    const issues = v.flatten(validation.issues).nested
-
-    logger.warn("otp:validation:failed", {
-      event: "validation.failed",
-      scope: "validator.schema",
-      input: validation.output,
-      issues,
-    })
-
-    return c.var.responder.error("Input invalid", issues, 400)
-  }),
-  async (c): Promise<Response> => {
-    const { email, otp } = c.req.valid("json")
-    const logger = c.var.getLogger({ route: "auth.otp.handler" })
-
-    logger.info("otp:started", {
-      event: "handler.started",
-      scope: "handler.init",
-      input: { email },
-    })
-
-    const { ok, reason } = await verifyOtp(c.env, email, otp)
-
-    if (!ok) {
-      switch (reason) {
-        case "expired":
-          logger.warn("otp:expired", {
-            event: "otp.expired",
-            scope: "kv.otp",
-            input: { email, otp }, //TODO: opaque these values
-          })
-
-          return c.var.responder.error(
-            "OTP has expired, please request a new one",
-            {},
-            410,
-          )
-        case "too_many":
-          logger.warn("otp:too many attempts", {
-            event: "otp.blocked",
-            scope: "kv.otp",
-            input: { email, otp }, //TODO: opaque these values
-          })
-
-          return c.var.responder.error("Too many attempts", {}, 429)
-        default:
-          return c.var.responder.error("OTP is invalid", {}, 400)
-      }
-    }
-
-    try {
-      const user = await c.env.DB.prepare(
-        "SELECT id FROM users WHERE email = ?  AND active = false",
-      )
-        .bind(email)
-        .first()
-
-      if (!user) {
-        logger.warn("user:activated:failed", {
-          event: "otp.invalid",
-          scope: "db.users",
-          input: { email, otp }, //TODO: opaque these values
-        })
-        return c.var.responder.error(
-          "Invalid OTP or already activated",
-          {},
-          400,
-        )
-      }
-
-      const result = await c.env.DB.prepare(
-        "UPDATE users SET active = true WHERE email = ?",
-      )
-        .bind(email)
-        .run()
-
-      if (result.meta.changes === 1) {
-        logger.info("user:activated", {
-          event: "otp.validated",
-          scope: "db.users",
-          input: { db: { duration: result.meta.duration } },
-        })
-
-        setMetric(c, "db.duration", result.meta.duration)
-
-        const accessPayload = {
-          id: user.id,
-          email,
-          exp: Math.floor(Date.now() / 1000) + 60 * 60,
-        }
-
-        logger.warn("user", { user })
-
-        const refreshPayload = {
-          id: user.id,
-          email,
-          exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 14,
-        }
-
-        const accessToken = await jwtSign(accessPayload, "secretito")
-        const refreshToken = await jwtSign(refreshPayload, "secretito")
-
-        setCookie(c, "token", accessToken, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "None",
-          maxAge: 3600,
-          path: "/",
-        })
-
-        setCookie(c, "refresh_token", refreshToken, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "None",
-          maxAge: 60 * 60 * 24 * 14,
-          path: "/",
-        })
-
-        return c.var.responder.success("user activated", 200)
-      }
-
-      logger.warn("user:activated:failed", {
-        event: "otp.invalid",
-        scope: "db.users",
-        input: { otp },
-      })
-
-      return c.var.responder.error("otp invalid", {}, 400)
-    } catch (err) {
-      logger.error("otp:error", {
-        event: "db.error",
-        scope: "db.users",
-        error: err instanceof Error ? err.message : String(err),
-      })
-
-      return c.var.responder.error("Unkown error", {}, 500)
-    }
-  },
-)
 
 app.post(
   "/refresh",
