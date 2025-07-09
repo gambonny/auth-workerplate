@@ -2,6 +2,7 @@ import { Hono } from "hono"
 
 import { signupRoute } from "./auth/signup"
 import { meRoute } from "./auth/me"
+import { logoutRoute } from "./auth/logout"
 import { refreshRoute } from "./auth/refresh"
 import { otpRoute } from "./otp/verify"
 
@@ -9,6 +10,7 @@ export const routes = new Hono()
 
 routes.route("/", signupRoute)
 routes.route("/", meRoute)
+routes.route("/", logoutRoute)
 routes.route("/", refreshRoute)
 routes.route("/", otpRoute)
 
