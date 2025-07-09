@@ -28,17 +28,12 @@ export async function verifyOtp(
   submitted: string,
 ) {
   const key = `otp:${email.trim().toLowerCase()}`
-  const raw = await env.OTP_STORE.get(key)
-  if (!raw) {
-    // either never generated or already expired
-    return { ok: false as const, reason: "expired" }
+  const record = (await env.OTP_STORE.get(key, "json")) as {
+    otp: string
+    attempts: number
   }
 
-  let record: { otp: string; attempts: number }
-  try {
-    record = JSON.parse(raw)
-  } catch {
-    // corrupt data — treat as expired
+  if (!record || !record.otp) {
     await env.OTP_STORE.delete(key)
     return { ok: false as const, reason: "expired" }
   }

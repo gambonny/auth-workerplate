@@ -114,7 +114,7 @@ otpRoute.post(
           exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 14,
         }
 
-        const accessToken = await jwtSign(accessPayload, "secretito")
+        const accessToken = await jwtSign(accessPayload, "secretito") //TODO:
         const refreshToken = await jwtSign(refreshPayload, "secretito")
 
         setCookie(c, "token", accessToken, {
