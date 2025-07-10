@@ -13,10 +13,10 @@ import type { UserPayload } from "@routes/auth/contracts"
 import { verifyOtpContract } from "./contracts"
 
 export const verifyOtpRoute = new Hono<AppEnv>()
-verifyOtpRoute.use(timing({ totalDescription: "otp-verify-request" }))
 
 verifyOtpRoute.post(
   "/otp/verify",
+  timing({ totalDescription: "otp-verify-request" }),
   validator("json", async (body, c) => {
     const validation = v.safeParse(verifyOtpContract, body)
     if (validation.success) return validation.output

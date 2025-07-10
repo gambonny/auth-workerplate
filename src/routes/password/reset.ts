@@ -11,10 +11,10 @@ import type { AppEnv } from "@/types"
 import { resetPasswordContract } from "./contracts"
 
 export const passwordResetRoute = new Hono<AppEnv>()
-passwordResetRoute.use(timing({ totalDescription: "password-reset-request" }))
 
 passwordResetRoute.post(
   "/password/reset",
+  timing({ totalDescription: "password-reset-request" }),
   validator("json", async (body, c) => {
     const validation = v.safeParse(resetPasswordContract, body)
     if (validation.success) return validation.output
