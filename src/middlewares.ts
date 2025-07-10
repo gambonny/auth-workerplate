@@ -1,7 +1,5 @@
-import type { MiddlewareHandler } from "hono"
-import type { UnknownRecord } from "type-fest"
-import { makeResponder } from "./generators"
 import { createMiddleware } from "hono/factory"
+import makeResponder from "@/lib/responder"
 
 /**
  * Middleware that enforces presence of the `x-thread-id` header.
@@ -18,8 +16,10 @@ import { createMiddleware } from "hono/factory"
  *
  * This middleware should run first, before logger setup or route handling.
  */
-export const requireThread: MiddlewareHandler = async (c, next) => {
+export const requireThread = createMiddleware(async (c, next) => {
   c.header("Timing-Allow-Origin", "http://localhost:5173")
+  c.header("Timing-Allow-Origin", "http://localhost:4173")
+
   const thread = c.req.header("x-thread-id")
 
   if (!thread) {
@@ -35,7 +35,7 @@ export const requireThread: MiddlewareHandler = async (c, next) => {
   c.set("thread", thread)
 
   await next()
-}
+})
 
 export const responderMiddleware = createMiddleware(async (c, next) => {
   c.set("responder", makeResponder())
