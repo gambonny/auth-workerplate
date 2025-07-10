@@ -1,7 +1,6 @@
 import type { TimingVariables } from "hono/timing"
 import type { UnknownRecord } from "type-fest"
 import type { GetLoggerFn } from "@gambonny/cflo"
-
 import type { Responder } from "@/lib/responder"
 
 export type SignupWorkflowEnv = {
