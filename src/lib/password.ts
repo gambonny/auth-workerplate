@@ -19,7 +19,7 @@ export async function storeToken(
     success,
     output: record,
     issues,
-  } = v.safeParse(resetPasswordContract, { email })
+  } = v.safeParse(resetPasswordContract, { email, token })
 
   if (!success) {
     onError?.(v.flatten(issues).nested)
