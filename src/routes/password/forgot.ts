@@ -76,7 +76,7 @@ passwordForgotRoute.post(
       const resend = new Resend(c.env.RESEND)
       const { error } = await resend.emails.send({
         from: "me@mail.gambonny.com",
-        to: "gambonny@gmaail.com",
+        to: "gambonny@gmail.com",
         subject: "Your password reset token",
         html: `<p>Your reset token is <strong>${rawToken}</strong>. It expires in 1 hour.</p>`,
       })
