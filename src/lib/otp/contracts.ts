@@ -3,7 +3,7 @@ import { emailContract } from "@routes/auth/contracts"
 
 export const otpContract = v.pipe(v.string(), v.length(8))
 
-export const verifyOtpRoutePayloadContract = v.object({
+export const otpPayloadContract = v.object({
   email: emailContract,
   otp: otpContract,
 })
@@ -16,3 +16,5 @@ export const otpRecordContract = v.object({
     v.maxValue(2, "too many attempts"),
   ),
 })
+
+export type OtpPayload = v.InferOutput<typeof otpPayloadContract>

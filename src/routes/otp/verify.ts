@@ -7,10 +7,11 @@ import * as v from "valibot"
 import { sign as jwtSign } from "@tsndr/cloudflare-worker-jwt"
 
 import { verifyOtp } from "@/lib/otp/service"
-import { verifyOtpRoutePayloadContract } from "@/lib/otp/contracts"
+import { otpPayloadContract } from "@/lib/otp/contracts"
 
 import type { AppEnv } from "@/types"
 import type { UserPayload } from "@routes/auth/contracts"
+import type { OtpPayload } from "@/lib/otp/contracts"
 
 export const verifyOtpRoute = new Hono<AppEnv>()
 
@@ -18,10 +19,7 @@ verifyOtpRoute.post(
   "/otp/verify",
   timing({ totalDescription: "otp-verify-request" }),
   validator("json", async (body, c) => {
-    const { success, output, issues } = v.safeParse(
-      verifyOtpRoutePayloadContract,
-      body,
-    )
+    const { success, output, issues } = v.safeParse(otpPayloadContract, body)
 
     if (success) return output
 
@@ -37,7 +35,7 @@ verifyOtpRoute.post(
     return c.var.responder.error("Input invalid")
   }),
   async (c): Promise<Response> => {
-    const { email, otp } = c.req.valid("json")
+    const { email, otp } = c.req.valid("json") as OtpPayload
     const logger = c.var.getLogger({ route: "otp.verify.handler" })
     const http = c.var.responder
 
@@ -137,7 +135,7 @@ verifyOtpRoute.post(
         error: err instanceof Error ? err.message : String(err),
       })
 
-      return http.error("Unkown error", {}, 500)
+      return http.error("Unknown error", {}, 500)
     }
   },
 )
