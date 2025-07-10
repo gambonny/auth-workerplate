@@ -3,6 +3,7 @@ import { timing } from "hono/timing"
 import { validator } from "hono/validator"
 
 import * as v from "valibot"
+import { backOff } from "exponential-backoff"
 import { Resend } from "resend"
 
 import { sha256hex } from "@/lib/crypto"
@@ -74,12 +75,29 @@ passwordForgotRoute.post(
     // send email
     try {
       const resend = new Resend(c.env.RESEND)
-      const { error } = await resend.emails.send({
-        from: "me@mail.gambonny.com",
-        to: "gambonny@gmail.com",
-        subject: "Your password reset token",
-        html: `<p>Your reset token is <strong>${rawToken}</strong>. It expires in 1 hour.</p>`,
-      })
+      const { error } = await backOff(
+        () =>
+          resend.emails.send({
+            from: "me@mail.gambonny.com",
+            to: "gambonny@gmail.com",
+            subject: "Your password reset token",
+            html: `<p>Your reset token is <strong>${rawToken}</strong>. It expires in 1 hour.</p>`,
+          }),
+        {
+          jitter: "full",
+          startingDelay: 100,
+          timeMultiple: 2,
+          maxDelay: 1000,
+          numOfAttempts: 4,
+          retry: e => {
+            // retry only on transient network or 5xx errors
+            if (e instanceof Error && e.message.includes("429")) return true
+            if (e instanceof Error && e.message.includes("timeout")) return true
+            if (e instanceof Error && e.message.match(/^5\d\d/)) return true
+            return false
+          },
+        },
+      )
 
       if (error) throw new Error(error.message)
 
