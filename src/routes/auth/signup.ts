@@ -11,10 +11,10 @@ import type { AppEnv } from "@/types"
 import { signupContract } from "./contracts"
 
 export const signupRoute = new Hono<AppEnv>()
+signupRoute.use(timing({ totalDescription: "signup-request" }))
 
 signupRoute.post(
   "/signup",
-  timing({ totalDescription: "signup-request" }),
   validator("json", async (body, c) => {
     const validation = v.safeParse(signupContract, body)
     if (validation.success) return validation.output

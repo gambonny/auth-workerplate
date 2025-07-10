@@ -11,10 +11,10 @@ import { loginContract } from "./contracts"
 import { hashPassword } from "@/lib/crypto"
 
 export const loginRoute = new Hono<AppEnv>()
+loginRoute.use(timing({ totalDescription: "login-request" }))
 
 loginRoute.post(
   "/login",
-  timing({ totalDescription: "login-request" }),
   validator("json", async (body, c) => {
     const validation = v.safeParse(loginContract, body)
     if (validation.success) return validation.output

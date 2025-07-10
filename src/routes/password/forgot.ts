@@ -13,10 +13,10 @@ import type { AppEnv } from "@/types"
 import { forgotPasswordContract } from "./contracts"
 
 export const passwordForgotRoute = new Hono<AppEnv>()
+passwordForgotRoute.use(timing({ totalDescription: "password-forgot-request" }))
 
 passwordForgotRoute.post(
   "/password/forgot",
-  timing({ totalDescription: "password-forgot-request" }),
   validator("json", async (body, c) => {
     const parsed = v.safeParse(forgotPasswordContract, body)
     if (parsed.success) return parsed.output
