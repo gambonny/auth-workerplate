@@ -8,7 +8,7 @@ import { hashPassword, sha256hex } from "@/lib/crypto"
 import { removeToken, verifyToken } from "@/lib/password"
 import type { AppEnv } from "@/types"
 
-import { resetPasswordContract } from "./contracts"
+import { resetPasswordRouteParamsContract } from "./contracts"
 
 export const passwordResetRoute = new Hono<AppEnv>()
 
@@ -16,7 +16,7 @@ passwordResetRoute.post(
   "/password/reset",
   timing({ totalDescription: "password-reset-request" }),
   validator("json", async (body, c) => {
-    const validation = v.safeParse(resetPasswordContract, body)
+    const validation = v.safeParse(resetPasswordRouteParamsContract, body)
     if (validation.success) return validation.output
 
     const logger = c.var.getLogger({ route: "auth.reset.validator" })

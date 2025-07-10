@@ -1,7 +1,7 @@
 import * as v from "valibot"
 
 import type { OnErrorCallback } from "@/types"
-import { resetPasswordContract } from "@/routes/password/contracts"
+import { resetPasswordRecordContract } from "@/routes/password/contracts"
 
 const EXPIRATION_SECONDS = 60 * 60 // 1 hour
 
@@ -19,7 +19,7 @@ export async function storeToken(
     success,
     output: record,
     issues,
-  } = v.safeParse(resetPasswordContract, { email, token })
+  } = v.safeParse(resetPasswordRecordContract, { email, token })
 
   if (!success) {
     onError?.(v.flatten(issues).nested)
@@ -55,7 +55,7 @@ export async function verifyToken(
     success,
     output: record,
     issues,
-  } = v.safeParse(resetPasswordContract, raw)
+  } = v.safeParse(resetPasswordRecordContract, raw)
 
   if (!success) {
     await env.OTP_STORE.delete(key)
