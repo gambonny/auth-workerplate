@@ -10,7 +10,7 @@ import { sha256hex } from "@/lib/crypto"
 import { storeToken } from "@/lib/password"
 import type { AppEnv } from "@/types"
 
-import { resetPasswordContract } from "./contracts"
+import { forgotPasswordContract } from "./contracts"
 
 export const passwordForgotRoute = new Hono<AppEnv>()
 
@@ -18,7 +18,7 @@ passwordForgotRoute.post(
   "/password/forgot",
   timing({ totalDescription: "password-forgot-request" }),
   validator("json", async (body, c) => {
-    const parsed = v.safeParse(resetPasswordContract, body)
+    const parsed = v.safeParse(forgotPasswordContract, body)
     if (parsed.success) return parsed.output
 
     const logger = c.var.getLogger({ route: "auth.forgot.validator" })

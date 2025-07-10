@@ -2,7 +2,7 @@ import { uaBlocker } from "@hono/ua-blocker"
 import { aiBots, useAiRobotsTxt } from "@hono/ua-blocker/ai-bots"
 import { env } from "cloudflare:workers"
 import { cors } from "hono/cors"
-import { timing, setMetric } from "hono/timing"
+import { timing } from "hono/timing"
 import { Hono } from "hono"
 import { secureHeaders } from "hono/secure-headers"
 import { trimTrailingSlash } from "hono/trailing-slash"
@@ -13,11 +13,7 @@ import { sign as jwtSign } from "@tsndr/cloudflare-worker-jwt"
 
 import { setCookie } from "hono/cookie"
 import { useLogger } from "@gambonny/cflo"
-import {
-  forgotPasswordContract,
-  loginContract,
-  resetPasswordContract,
-} from "./contracts"
+import { loginContract } from "./contracts"
 import * as generator from "./generators"
 // import { requireThread } from "./middlewares"
 
@@ -30,7 +26,6 @@ import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "./types"
 import { Resend } from "resend"
 import { contextStorage } from "hono/context-storage"
 import { responderMiddleware } from "./middlewares"
-import { removeToken, storeToken, verifyToken } from "./reset-password"
 /// ---
 import routes from "./routes"
 
@@ -110,88 +105,6 @@ app.use(async (c, next) => {
     },
   })(c, next)
 })
-
-app.post(
-  "/password/reset",
-  timing({ totalDescription: "password-reset-request" }),
-  validator("json", async (body, c) => {
-    const validation = v.safeParse(resetPasswordContract, body)
-    if (validation.success) return validation.output
-
-    const logger = c.var.getLogger({ route: "auth.reset.validator" })
-    const issues = v.flatten(validation.issues).nested
-
-    logger.warn("password:reset:validation:failed", {
-      event: "validation.failed",
-      scope: "validator.schema",
-      input: validation.output,
-      issues,
-    })
-
-    return c.var.responder.error("Invalid input", issues, 400)
-  }),
-  async (c): Promise<Response> => {
-    const logger = c.var.getLogger({ route: "auth.reset.handler" })
-    const { token, password } = c.req.valid("json")
-
-    // hash the provided token to compare against stored hash
-    const hashedToken = await generator.sha256hex(token)
-    const email = await verifyToken(c.env, hashedToken)
-
-    if (!email) {
-      logger.warn("reset-token:expired", {
-        event: "reset-token.expired",
-        scope: "kv.reset-token",
-        input: { email }, //TODO: opaque these values
-      })
-
-      return c.var.responder.error(
-        "Token has expired, please request a new one",
-        {},
-        410,
-      )
-    }
-
-    // try to find a user with that email
-    const user = await c.env.DB.prepare(
-      "SELECT id, salt FROM users WHERE email = ?",
-    )
-      .bind(email)
-      .first<{
-        id: number
-        salt: string
-      }>()
-
-    if (!user) {
-      logger.warn("password:reset:failed:user:notfound", {
-        event: "email.notfound",
-        scope: "db.users",
-      })
-
-      return c.var.responder.error("User not found", {}, 404)
-    }
-
-    // hash the new password with existing salt (or generate new salt if you want)
-    const passwordHash = await generator.hashPassword(password, user.salt)
-
-    const result = await c.env.DB.prepare(
-      `UPDATE users SET password_hash = ?
-       WHERE id = ?`,
-    )
-      .bind(passwordHash, user.id)
-      .run()
-
-    setMetric(c, "db.duration", result.meta.duration)
-
-    logger.info("password:reset:success", {
-      event: "password.reset.success",
-      scope: "db.users",
-    })
-
-    await removeToken(c.env, hashedToken)
-    return c.var.responder.success("Password has been successfully reset", 200)
-  },
-)
 
 app.post(
   "/login",
