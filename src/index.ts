@@ -1,25 +1,21 @@
+import { Hono } from "hono"
 import { uaBlocker } from "@hono/ua-blocker"
 import { aiBots, useAiRobotsTxt } from "@hono/ua-blocker/ai-bots"
-import { env } from "cloudflare:workers"
 import { cors } from "hono/cors"
-import { Hono } from "hono"
 import { secureHeaders } from "hono/secure-headers"
 import { trimTrailingSlash } from "hono/trailing-slash"
-
-import { useLogger } from "@gambonny/cflo"
-// import { requireThread } from "./middlewares"
-
-import {
-  WorkflowEntrypoint,
-  type WorkflowEvent,
-  type WorkflowStep,
-} from "cloudflare:workers"
-import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "./types"
-import { Resend } from "resend"
 import { contextStorage } from "hono/context-storage"
-import { responderMiddleware } from "./middlewares"
-/// ---
+
+import { env, WorkflowEntrypoint } from "cloudflare:workers"
+import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers"
+
+import { Resend } from "resend"
+import { useLogger } from "@gambonny/cflo"
+
 import routes from "./routes"
+import { responderMiddleware } from "./middlewares"
+import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "./types"
+// import { requireThread } from "./middlewares"
 
 export class SignupWorkflow extends WorkflowEntrypoint<
   SignupWorkflowEnv,
@@ -45,7 +41,7 @@ export class SignupWorkflow extends WorkflowEntrypoint<
       },
     )
 
-    // Step 2: Wait for 1 minute
+    // Step 2: Wait for 1 hour
     await step.sleep("wait-for-activation", "60 minutes")
 
     // Step 3: Check if user is activated
@@ -81,11 +77,10 @@ app.use(
 app.use(secureHeaders())
 app.use(trimTrailingSlash())
 app.use(contextStorage())
-app.use(responderMiddleware)
-// app.use(requireThread)
-app.use("*", uaBlocker({ blocklist: aiBots }))
+app.use(uaBlocker({ blocklist: aiBots }))
 app.use("/robots.txt", useAiRobotsTxt())
 
+app.use(responderMiddleware)
 app.use(async (c, next) => {
   return useLogger({
     level: env.LOG_LEVEL,
