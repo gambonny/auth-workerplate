@@ -73,10 +73,10 @@ app.use(
     credentials: true,
   }),
 )
+app.use(contextStorage())
 app.use(responderMiddleware)
 app.use(secureHeaders())
 app.use(trimTrailingSlash())
-app.use(contextStorage())
 app.use(uaBlocker({ blocklist: aiBots }))
 app.use("/robots.txt", useAiRobotsTxt())
 
