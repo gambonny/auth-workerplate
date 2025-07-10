@@ -1,8 +1,17 @@
 import { Temporal } from "@js-temporal/polyfill"
 import * as v from "valibot"
 
+import { otpContract } from "@routes/otp/contracts"
 import type { OnErrorCallback } from "@/types"
-import otpRecordContract from "./contract"
+
+const otpRecordContract = v.object({
+  otp: otpContract,
+  attempts: v.pipe(
+    v.number(),
+    v.minValue(0),
+    v.maxValue(2, "too many attempts"),
+  ),
+})
 
 export function generateOtp(): string {
   return Math.floor(Math.random() * 100_000_000)
@@ -60,13 +69,6 @@ export async function verifyOtp(
   if (!success) {
     await env.OTP_STORE.delete(key)
     onError?.(v.flatten(issues).nested)
-    return false
-  }
-
-  const MAX_OTP_ATTEMPTS = 3
-  if (record.attempts > MAX_OTP_ATTEMPTS) {
-    await env.OTP_STORE.delete(key)
-    onError?.({ attempts: ["too many attempts"] })
     return false
   }
 
