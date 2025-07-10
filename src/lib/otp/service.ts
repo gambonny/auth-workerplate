@@ -1,17 +1,8 @@
 import { Temporal } from "@js-temporal/polyfill"
 import * as v from "valibot"
 
-import { otpContract } from "@routes/otp/contracts"
+import { otpRecordContract } from "./contracts"
 import type { OnErrorCallback } from "@/types"
-
-const otpRecordContract = v.object({
-  otp: otpContract,
-  attempts: v.pipe(
-    v.number(),
-    v.minValue(0),
-    v.maxValue(2, "too many attempts"),
-  ),
-})
 
 export function generateOtp(): string {
   return Math.floor(Math.random() * 100_000_000)

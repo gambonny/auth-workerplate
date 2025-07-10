@@ -5,10 +5,10 @@ import { validator } from "hono/validator"
 import * as v from "valibot"
 
 import { hashPassword, salt } from "@/lib/crypto"
-import { generateOtp, storeOtp } from "@/lib/otp"
-import type { AppEnv } from "@/types"
-
+import { generateOtp, storeOtp } from "@/lib/otp/service"
 import { signupContract } from "./contracts"
+
+import type { AppEnv } from "@/types"
 
 export const signupRoute = new Hono<AppEnv>()
 
