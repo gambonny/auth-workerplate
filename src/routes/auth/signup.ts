@@ -11,7 +11,6 @@ import type { AppEnv } from "@/types"
 import { signupContract } from "./contracts"
 
 export const signupRoute = new Hono<AppEnv>()
-signupRoute.use()
 
 signupRoute.post(
   "/signup",

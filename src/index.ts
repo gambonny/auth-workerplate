@@ -92,10 +92,10 @@ app.use(async (c, next) => {
   })(c, next)
 })
 
+app.route("/", routes)
+
 app.notFound(c => {
   return c.text("Not found", 404)
 })
-
-app.route("/", routes)
 
 export default app
