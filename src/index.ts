@@ -2,19 +2,11 @@ import { uaBlocker } from "@hono/ua-blocker"
 import { aiBots, useAiRobotsTxt } from "@hono/ua-blocker/ai-bots"
 import { env } from "cloudflare:workers"
 import { cors } from "hono/cors"
-import { timing } from "hono/timing"
 import { Hono } from "hono"
 import { secureHeaders } from "hono/secure-headers"
 import { trimTrailingSlash } from "hono/trailing-slash"
-import { validator } from "hono/validator"
-import * as v from "valibot"
 
-import { sign as jwtSign } from "@tsndr/cloudflare-worker-jwt"
-
-import { setCookie } from "hono/cookie"
 import { useLogger } from "@gambonny/cflo"
-import { loginContract } from "./contracts"
-import * as generator from "./generators"
 // import { requireThread } from "./middlewares"
 
 import {
@@ -105,106 +97,6 @@ app.use(async (c, next) => {
     },
   })(c, next)
 })
-
-app.post(
-  "/login",
-  timing({ totalDescription: "login-request" }),
-  validator("json", async (body, c) => {
-    const validation = v.safeParse(loginContract, body)
-    if (validation.success) return validation.output
-
-    const logger = c.var.getLogger({ route: "auth.login.validator" })
-    const issues = v.flatten(validation.issues).nested
-
-    logger.warn("login:validation:failed", {
-      event: "validation.failed",
-      scope: "validator.schema",
-      input: validation.output,
-      issues,
-    })
-
-    return c.var.responder.error("Invalid input", issues, 400)
-  }),
-  async (c): Promise<Response> => {
-    const logger = c.var.getLogger({ route: "auth.login.handler" })
-    const { email, password } = c.req.valid("json")
-
-    logger.info("login:started", {
-      event: "login.attempt",
-      scope: "auth.session",
-      input: { email },
-    })
-
-    // 4) Fetch user by email
-    const row = await c.env.DB.prepare(
-      `SELECT id, password_hash, salt, active
-         FROM users
-        WHERE email = ?`,
-    )
-      .bind(email)
-      .first<{
-        id: number
-        password_hash: string
-        salt: string
-        active: number
-      }>()
-
-    // 5) Check existence & activation
-    if (!row || row.active !== 1) {
-      logger.warn("login:failed", {
-        event: "login.invalid-credentials",
-        scope: "auth.session",
-        input: { email },
-      })
-
-      return c.var.responder.error("Invalid email or password", {}, 401)
-    }
-
-    // 6) Verify password
-    const computed = await generator.hashPassword(password, row.salt)
-    if (computed !== row.password_hash) {
-      logger.warn("login:failed", {
-        event: "login.invalid-credentials",
-        scope: "auth.session",
-        input: { email },
-      })
-
-      return c.var.responder.error("Invalid email or password", {}, 401)
-    }
-
-    // 7) Issue tokens
-    const now = Math.floor(Date.now() / 1000)
-    const accessPayload = { id: row.id, email, exp: now + 60 * 60 }
-    const refreshPayload = { id: row.id, email, exp: now + 60 * 60 * 24 * 14 }
-
-    const accessToken = await jwtSign(accessPayload, "secretito")
-    const refreshToken = await jwtSign(refreshPayload, "secretito")
-
-    // 8) Set cookies
-    setCookie(c, "token", accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      maxAge: 60 * 60,
-      path: "/",
-    })
-    setCookie(c, "refresh_token", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      maxAge: 60 * 60 * 24 * 14,
-      path: "/",
-    })
-
-    logger.info("login:success", {
-      event: "login.success",
-      scope: "auth.session",
-      input: { userId: row.id },
-    })
-
-    return c.var.responder.success("Logged in successfully", 200)
-  },
-)
 
 app.notFound(c => {
   return c.text("Not found", 404)
