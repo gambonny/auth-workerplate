@@ -112,58 +112,6 @@ app.use(async (c, next) => {
 })
 
 app.post(
-  "/password/forgot",
-  timing({ totalDescription: "password-forgot-request" }),
-  validator("json", async (body, c) => {
-    const validation = v.safeParse(forgotPasswordContract, body)
-    if (validation.success) return validation.output
-
-    const logger = c.var.getLogger({ route: "auth.forgot.validator" })
-    const issues = v.flatten(validation.issues).nested
-
-    logger.warn("password:forgot:validation:failed", {
-      event: "validation.failed",
-      scope: "validator.schema",
-      input: validation.output,
-      issues,
-    })
-
-    return c.var.responder.error("Invalid input", issues, 400)
-  }),
-  async (c): Promise<Response> => {
-    const { email } = c.req.valid("json")
-    const logger = c.var.getLogger({ route: "auth.forgot.handler" })
-
-    // generate token + hash + expiry
-    const rawToken = crypto.randomUUID()
-    const tokenHash = await generator.sha256hex(rawToken)
-
-    await storeToken(c.env, email, tokenHash)
-
-    logger.info("password:forgot:token-generated", {
-      event: "token.generated",
-      scope: "kv.password",
-      input: { email },
-    })
-
-    const resend = new Resend(env.RESEND)
-    const { error } = await resend.emails.send({
-      from: "me@mail.gambonny.com",
-      to: "gambonny@gmail.com",
-      subject: "Your token",
-      html: `<p>Your token is <strong>${rawToken}</strong> you have 60 minutes</p>`,
-    })
-
-    if (error) throw new Error(error.message)
-
-    return c.var.responder.created(
-      "If that email is registered, you’ll receive reset instructions shortly",
-      200,
-    )
-  },
-)
-
-app.post(
   "/password/reset",
   timing({ totalDescription: "password-reset-request" }),
   validator("json", async (body, c) => {

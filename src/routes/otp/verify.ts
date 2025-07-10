@@ -12,9 +12,9 @@ import type { UserPayload } from "@routes/auth/contracts"
 
 import { verifyOtpContract } from "./contracts"
 
-export const otpRoute = new Hono<AppEnv>()
+export const verifyOtpRoute = new Hono<AppEnv>()
 
-otpRoute.post(
+verifyOtpRoute.post(
   "/otp/verify",
   timing({ totalDescription: "otp-verify-request" }),
   validator("json", async (body, c) => {
@@ -31,11 +31,12 @@ otpRoute.post(
       issues,
     })
 
-    return c.var.responder.error("Input invalid", issues, 400)
+    return c.var.responder.error("Input invalid", issues)
   }),
   async (c): Promise<Response> => {
     const { email, otp } = c.req.valid("json")
     const logger = c.var.getLogger({ route: "otp.verify.handler" })
+    const http = c.var.responder
 
     logger.info("otp:started", {
       event: "handler.started",
@@ -52,7 +53,7 @@ otpRoute.post(
       })
     })
 
-    if (!verified) return c.var.responder.error("activation failed")
+    if (!verified) return http.error("activation failed")
 
     try {
       const user = await c.env.DB.prepare(
@@ -67,7 +68,7 @@ otpRoute.post(
           scope: "db.users",
           input: { email, otp }, //TODO: opaque these values
         })
-        return c.var.responder.error("activation failed", {}, 400)
+        return http.error("activation failed")
       }
 
       const result = await c.env.DB.prepare(
@@ -116,7 +117,7 @@ otpRoute.post(
           path: "/",
         })
 
-        return c.var.responder.success("user activated", 200)
+        return http.success("user activated")
       }
 
       logger.warn("user:activated:failed", {
@@ -125,7 +126,7 @@ otpRoute.post(
         input: { otp },
       })
 
-      return c.var.responder.error("activation failed", {}, 400)
+      return http.error("activation failed")
     } catch (err) {
       logger.error("db:error", {
         event: "db.error",
@@ -133,7 +134,7 @@ otpRoute.post(
         error: err instanceof Error ? err.message : String(err),
       })
 
-      return c.var.responder.error("Unkown error", {}, 500)
+      return http.error("Unkown error", {}, 500)
     }
   },
 )

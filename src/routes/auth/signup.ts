@@ -34,6 +34,7 @@ signupRoute.post(
   async (c): Promise<Response> => {
     const { email, password } = c.req.valid("json")
     const logger = c.var.getLogger({ route: "auth.signup.handler" })
+    const http = c.var.responder
 
     logger.info("signup:started", {
       event: "handler.started",
@@ -95,14 +96,10 @@ signupRoute.post(
           workflow: workflow.id,
         })
 
-        return c.var.responder.created(
-          "User registered, email with otp has been sent",
-        )
+        return http.created("User registered, email with otp has been sent")
       }
 
-      return c.var.responder.error(
-        "User registerd but email with otp couldn't be sent",
-      )
+      return http.error("User registerd but email with otp couldn't be sent")
     } catch (err) {
       if (err instanceof Error) {
         if (err.message.includes("UNIQUE constraint failed")) {
@@ -113,7 +110,7 @@ signupRoute.post(
             input: { email },
           })
 
-          return c.var.responder.error(
+          return http.error(
             "Invalid input",
             { email: ["User already exists"] },
             409,
@@ -129,7 +126,7 @@ signupRoute.post(
         error: errorMessage,
       })
 
-      return c.var.responder.error(errorMessage, {}, 500)
+      return http.error(errorMessage, {}, 500)
     }
   },
 )
