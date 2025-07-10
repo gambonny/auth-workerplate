@@ -1,7 +1,7 @@
 import { Hono } from "hono"
+import { cors } from "hono/cors"
 import { uaBlocker } from "@hono/ua-blocker"
 import { aiBots, useAiRobotsTxt } from "@hono/ua-blocker/ai-bots"
-import { cors } from "hono/cors"
 import { secureHeaders } from "hono/secure-headers"
 import { trimTrailingSlash } from "hono/trailing-slash"
 import { contextStorage } from "hono/context-storage"
@@ -12,10 +12,9 @@ import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers"
 import { Resend } from "resend"
 import { useLogger } from "@gambonny/cflo"
 
-import routes from "./routes"
-import { responderMiddleware } from "./middlewares"
-import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "./types"
-// import { requireThread } from "./middlewares"
+import routes from "@/routes"
+import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "@/types"
+import responderMiddleware from "@/middlewares/responder"
 
 export class SignupWorkflow extends WorkflowEntrypoint<
   SignupWorkflowEnv,
@@ -74,13 +73,13 @@ app.use(
     credentials: true,
   }),
 )
+app.use(responderMiddleware)
 app.use(secureHeaders())
 app.use(trimTrailingSlash())
 app.use(contextStorage())
 app.use(uaBlocker({ blocklist: aiBots }))
 app.use("/robots.txt", useAiRobotsTxt())
 
-app.use(responderMiddleware)
 app.use(async (c, next) => {
   return useLogger({
     level: env.LOG_LEVEL,
