@@ -7,11 +7,11 @@ import * as v from "valibot"
 import { sign as jwtSign } from "@tsndr/cloudflare-worker-jwt"
 
 import { verifyOtp } from "@otp/service"
-import { otpPayloadContract } from "@otp/contracts"
+import { otpPayloadSchema } from "@otp/schemas"
 
 import type { AppEnv } from "@types"
 import type { UserPayload } from "@auth/schemas"
-import type { OtpPayload } from "@otp/contracts"
+import type { OtpPayload } from "@otp/schemas"
 
 export const verifyOtpRoute = new Hono<AppEnv>()
 
@@ -19,7 +19,7 @@ verifyOtpRoute.post(
   "/otp/verify",
   timing({ totalDescription: "otp-verify-request" }),
   validator("json", async (body, c) => {
-    const validation = v.safeParse(otpPayloadContract, body)
+    const validation = v.safeParse(otpPayloadSchema, body)
 
     if (validation.success) return validation.output
 

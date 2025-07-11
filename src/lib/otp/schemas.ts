@@ -3,12 +3,12 @@ import { emailField } from "@auth/schemas"
 
 export const otpCodeField = v.pipe(v.string(), v.length(8))
 
-export const otpPayloadContract = v.object({
+export const otpPayloadSchema = v.object({
   email: emailField,
   otp: otpCodeField,
 })
 
-export const otpRecordContract = v.object({
+export const otpRecordSchema = v.object({
   otp: otpCodeField,
   attempts: v.pipe(
     v.number(),
@@ -17,4 +17,4 @@ export const otpRecordContract = v.object({
   ),
 })
 
-export type OtpPayload = v.InferOutput<typeof otpPayloadContract>
+export type OtpPayload = v.InferOutput<typeof otpPayloadSchema>
