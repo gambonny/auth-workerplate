@@ -7,10 +7,10 @@ import * as v from "valibot"
 import { sign as jwtSign } from "@tsndr/cloudflare-worker-jwt"
 
 import { hashPassword } from "@lib/crypto"
-import { loginPayloadContract } from "@auth/contracts"
+import { loginPayloadSchema } from "@auth/schemas"
 
 import type { AppEnv } from "@types"
-import type { LoginPayload } from "@auth/contracts"
+import type { LoginPayload } from "@auth/schemas"
 
 export const loginRoute = new Hono<AppEnv>()
 
@@ -18,7 +18,7 @@ loginRoute.post(
   "/login",
   timing({ totalDescription: "login-request" }),
   validator("json", async (body, c) => {
-    const validation = v.safeParse(loginPayloadContract, body)
+    const validation = v.safeParse(loginPayloadSchema, body)
     if (validation.success) return validation.output
 
     const logger = c.var.getLogger({ route: "auth.login.validator" })

@@ -1,5 +1,5 @@
 import * as v from "valibot"
-import { emailField } from "@auth/contracts"
+import { emailField } from "@auth/schemas"
 
 export const otpCodeField = v.pipe(v.string(), v.length(8))
 

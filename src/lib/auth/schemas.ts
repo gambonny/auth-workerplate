@@ -12,22 +12,22 @@ export const passwordField = v.pipe(
   v.minLength(8, "Password must be at least 8 characters long"),
 )
 
-export const signupPayloadContract = v.object({
+export const signupPayloadSchema = v.object({
   email: emailField,
   password: passwordField,
 })
 
-export const loginPayloadContract = v.object({
+export const loginPayloadSchema = v.object({
   email: emailField,
   password: passwordField,
 })
 
-export const userPayloadContract = v.object({
+export const userPayloadSchema = v.object({
   id: v.string(),
   email: emailField,
   exp: v.number(),
 })
 
-export type SignupPayload = v.InferOutput<typeof signupPayloadContract>
-export type LoginPayload = v.InferOutput<typeof loginPayloadContract>
-export type UserPayload = v.InferOutput<typeof userPayloadContract>
+export type SignupPayload = v.InferOutput<typeof signupPayloadSchema>
+export type LoginPayload = v.InferOutput<typeof loginPayloadSchema>
+export type UserPayload = v.InferOutput<typeof userPayloadSchema>

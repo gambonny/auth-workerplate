@@ -10,7 +10,7 @@ import {
 import * as v from "valibot"
 
 import type { AppEnv } from "@types"
-import { userPayloadContract, type UserPayload } from "@auth/contracts"
+import { userPayloadSchema, type UserPayload } from "@auth/schemas"
 
 export const refreshRoute = new Hono<AppEnv>()
 
@@ -30,7 +30,7 @@ refreshRoute.post(
     }
 
     const { success, output: userPayload } = v.safeParse(
-      userPayloadContract,
+      userPayloadSchema,
       jwtDecode(refreshToken).payload,
     )
 

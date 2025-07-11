@@ -1,5 +1,5 @@
 import * as v from "valibot"
-import { emailField, passwordField } from "@auth/contracts"
+import { emailField, passwordField } from "@auth/schemas"
 
 const tokenField = v.pipe(v.string(), v.trim(), v.minLength(10))
 

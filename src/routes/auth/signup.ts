@@ -6,10 +6,10 @@ import * as v from "valibot"
 
 import { hashPassword, salt } from "@lib/crypto"
 import { generateOtp, storeOtp } from "@otp/service"
-import { signupPayloadContract } from "@auth/contracts"
+import { signupPayloadSchema } from "@auth/schemas"
 
 import type { AppEnv } from "@types"
-import type { SignupPayload } from "@auth/contracts"
+import type { SignupPayload } from "@auth/schemas"
 
 export const signupRoute = new Hono<AppEnv>()
 
@@ -17,7 +17,7 @@ signupRoute.post(
   "/signup",
   timing({ totalDescription: "signup-request" }),
   validator("json", async (body, c) => {
-    const validation = v.safeParse(signupPayloadContract, body)
+    const validation = v.safeParse(signupPayloadSchema, body)
     if (validation.success) return validation.output
 
     const logger = c.var.getLogger({ route: "auth.signup.validator" })

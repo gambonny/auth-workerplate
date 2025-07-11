@@ -10,7 +10,7 @@ import { verifyOtp } from "@otp/service"
 import { otpPayloadContract } from "@otp/contracts"
 
 import type { AppEnv } from "@types"
-import type { UserPayload } from "@auth/contracts"
+import type { UserPayload } from "@auth/schemas"
 import type { OtpPayload } from "@otp/contracts"
 
 export const verifyOtpRoute = new Hono<AppEnv>()
