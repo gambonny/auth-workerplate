@@ -3,24 +3,24 @@ import { emailField, passwordField } from "@auth/schemas"
 
 const tokenField = v.pipe(v.string(), v.trim(), v.minLength(10))
 
-export const forgotPasswordPayloadContract = v.object({
+export const forgotPasswordPayloadSchema = v.object({
   email: emailField,
 })
 
-export const resetPasswordPayloadContract = v.object({
+export const resetPasswordPayloadSchema = v.object({
   token: tokenField,
   password: passwordField,
 })
 
-export const resetPasswordRecordContract = v.object({
+export const resetPasswordRecordSchema = v.object({
   token: tokenField,
   email: emailField,
 })
 
 export type ForgotPasswordPayload = v.InferOutput<
-  typeof forgotPasswordPayloadContract
+  typeof forgotPasswordPayloadSchema
 >
 
 export type ResetPasswordPayload = v.InferOutput<
-  typeof resetPasswordPayloadContract
+  typeof resetPasswordPayloadSchema
 >

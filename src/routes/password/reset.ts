@@ -6,10 +6,10 @@ import * as v from "valibot"
 
 import { hashPassword, sha256hex } from "@/lib/crypto"
 import { removeToken, verifyToken } from "@password/service"
-import { resetPasswordPayloadContract } from "@password/contracts"
+import { resetPasswordPayloadSchema } from "@password/schemas"
 
 import type { AppEnv } from "@types"
-import type { ResetPasswordPayload } from "@password/contracts"
+import type { ResetPasswordPayload } from "@password/schemas"
 
 export const passwordResetRoute = new Hono<AppEnv>()
 
@@ -17,7 +17,7 @@ passwordResetRoute.post(
   "/password/reset",
   timing({ totalDescription: "password-reset-request" }),
   validator("json", async (body, c) => {
-    const validation = v.safeParse(resetPasswordPayloadContract, body)
+    const validation = v.safeParse(resetPasswordPayloadSchema, body)
     if (validation.success) return validation.output
 
     const logger = c.var.getLogger({ route: "auth.reset.validator" })
