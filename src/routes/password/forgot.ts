@@ -7,10 +7,11 @@ import { backOff } from "exponential-backoff"
 import { Resend } from "resend"
 
 import { sha256hex } from "@lib/crypto"
-import { storeToken } from "@lib/password"
-import type { AppEnv } from "@types"
+import { storeToken } from "@password/service"
+import { forgotPasswordPayloadContract } from "@password/contracts"
 
-import { forgotPasswordContract } from "./contracts"
+import type { AppEnv } from "@types"
+import type { ForgotPasswordPayload } from "@password/contracts"
 
 export const passwordForgotRoute = new Hono<AppEnv>()
 
@@ -18,23 +19,22 @@ passwordForgotRoute.post(
   "/password/forgot",
   timing({ totalDescription: "password-forgot-request" }),
   validator("json", async (body, c) => {
-    const parsed = v.safeParse(forgotPasswordContract, body)
+    const parsed = v.safeParse(forgotPasswordPayloadContract, body)
     if (parsed.success) return parsed.output
 
     const logger = c.var.getLogger({ route: "auth.forgot.validator" })
-    const issues = v.flatten(parsed.issues).nested
 
     logger.warn("password:forgot:validation:failed", {
       event: "validation.failed",
       scope: "validator.schema",
       input: parsed.output,
-      issues,
+      issues: v.flatten(parsed.issues).nested,
     })
 
-    return c.var.responder.error("Invalid input", issues)
+    return c.var.responder.error("Invalid input")
   }),
   async (c): Promise<Response> => {
-    const { email } = c.req.valid("json")
+    const { email } = c.req.valid("json") as ForgotPasswordPayload
     const logger = c.var.getLogger({ route: "auth.forgot.handler" })
     const http = c.var.responder
 

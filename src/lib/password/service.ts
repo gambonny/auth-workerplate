@@ -1,7 +1,7 @@
 import * as v from "valibot"
 
+import { resetPasswordRecordContract } from "./contracts"
 import type { OnErrorCallback } from "@types"
-import { resetPasswordRecordContract } from "@routes/password/contracts"
 
 const EXPIRATION_SECONDS = 60 * 60 // 1 hour
 
@@ -19,7 +19,7 @@ export async function storeToken(
     success,
     output: record,
     issues,
-  } = v.safeParse(resetPasswordRecordContract, { email, token })
+  } = v.safeParse(resetPasswordRecordContract, { token, email })
 
   if (!success) {
     onError?.(v.flatten(issues).nested)

@@ -5,10 +5,11 @@ import { validator } from "hono/validator"
 import * as v from "valibot"
 
 import { hashPassword, sha256hex } from "@/lib/crypto"
-import { removeToken, verifyToken } from "@/lib/password"
-import type { AppEnv } from "@types"
+import { removeToken, verifyToken } from "@password/service"
+import { resetPasswordPayloadContract } from "@password/contracts"
 
-import { resetPasswordRouteParamsContract } from "./contracts"
+import type { AppEnv } from "@types"
+import type { ResetPasswordPayload } from "@password/contracts"
 
 export const passwordResetRoute = new Hono<AppEnv>()
 
@@ -16,24 +17,23 @@ passwordResetRoute.post(
   "/password/reset",
   timing({ totalDescription: "password-reset-request" }),
   validator("json", async (body, c) => {
-    const validation = v.safeParse(resetPasswordRouteParamsContract, body)
+    const validation = v.safeParse(resetPasswordPayloadContract, body)
     if (validation.success) return validation.output
 
     const logger = c.var.getLogger({ route: "auth.reset.validator" })
-    const issues = v.flatten(validation.issues).nested
 
     logger.warn("password:reset:validation:failed", {
       event: "validation.failed",
       scope: "validator.schema",
       input: validation.output,
-      issues,
+      issues: v.flatten(validation.issues).nested,
     })
 
-    return c.var.responder.error("Invalid input", issues, 400)
+    return c.var.responder.error("Invalid input")
   }),
   async (c): Promise<Response> => {
     const logger = c.var.getLogger({ route: "auth.reset.handler" })
-    const { token, password } = c.req.valid("json")
+    const { token, password } = c.req.valid("json") as ResetPasswordPayload
     const http = c.var.responder
 
     // hash the provided token to compare against stored hash
@@ -47,11 +47,7 @@ passwordResetRoute.post(
         input: { email }, //TODO: opaque these values
       })
 
-      return c.var.responder.error(
-        "Token has expired, please request a new one",
-        {},
-        410,
-      )
+      return http.error("Token has expired, please request a new one", {}, 410)
     }
 
     // try to find a user with that email
