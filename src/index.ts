@@ -13,7 +13,7 @@ import { Resend } from "resend"
 import { useLogger } from "@gambonny/cflo"
 
 import routes from "@/routes"
-import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "@/types"
+import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "@types"
 import responderMiddleware from "@/middlewares/responder"
 
 export class SignupWorkflow extends WorkflowEntrypoint<

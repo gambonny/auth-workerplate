@@ -1,7 +1,7 @@
 import * as v from "valibot"
 
-import type { OnErrorCallback } from "@/types"
-import { resetPasswordRecordContract } from "@/routes/password/contracts"
+import type { OnErrorCallback } from "@types"
+import { resetPasswordRecordContract } from "@routes/password/contracts"
 
 const EXPIRATION_SECONDS = 60 * 60 // 1 hour
 

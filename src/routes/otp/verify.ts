@@ -6,12 +6,12 @@ import { validator } from "hono/validator"
 import * as v from "valibot"
 import { sign as jwtSign } from "@tsndr/cloudflare-worker-jwt"
 
-import { verifyOtp } from "@/lib/otp/service"
-import { otpPayloadContract } from "@/lib/otp/contracts"
+import { verifyOtp } from "@otp/service"
+import { otpPayloadContract } from "@otp/contracts"
 
-import type { AppEnv } from "@/types"
-import type { UserPayload } from "@routes/auth/contracts"
-import type { OtpPayload } from "@/lib/otp/contracts"
+import type { AppEnv } from "@types"
+import type { UserPayload } from "@auth/contracts"
+import type { OtpPayload } from "@otp/contracts"
 
 export const verifyOtpRoute = new Hono<AppEnv>()
 
@@ -19,17 +19,17 @@ verifyOtpRoute.post(
   "/otp/verify",
   timing({ totalDescription: "otp-verify-request" }),
   validator("json", async (body, c) => {
-    const { success, output, issues } = v.safeParse(otpPayloadContract, body)
+    const validation = v.safeParse(otpPayloadContract, body)
 
-    if (success) return output
+    if (validation.success) return validation.output
 
     const logger = c.var.getLogger({ route: "otp.verify.validator" })
 
     logger.warn("otp:validation:failed", {
       event: "validation.failed",
       scope: "validator.schema",
-      input: output,
-      issues: v.flatten(issues).nested,
+      input: validation.output,
+      issues: v.flatten(validation.issues).nested,
     })
 
     return c.var.responder.error("Input invalid")

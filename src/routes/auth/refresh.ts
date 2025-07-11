@@ -9,8 +9,8 @@ import {
 } from "@tsndr/cloudflare-worker-jwt"
 import * as v from "valibot"
 
-import type { AppEnv } from "@/types"
-import { userPayloadContract, type UserPayload } from "./contracts"
+import type { AppEnv } from "@types"
+import { userPayloadContract, type UserPayload } from "@auth/contracts"
 
 export const refreshRoute = new Hono<AppEnv>()
 

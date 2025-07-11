@@ -1,7 +1,7 @@
 import { getCookie } from "hono/cookie"
 import { createMiddleware } from "hono/factory"
 
-import type { AppEnv, TokenSentinelService } from "@/types"
+import type { AppEnv, TokenSentinelService } from "@types"
 
 const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
   const logger = c.var.getLogger({ route: "auth.middleware" })

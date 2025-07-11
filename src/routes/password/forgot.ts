@@ -6,9 +6,9 @@ import * as v from "valibot"
 import { backOff } from "exponential-backoff"
 import { Resend } from "resend"
 
-import { sha256hex } from "@/lib/crypto"
-import { storeToken } from "@/lib/password"
-import type { AppEnv } from "@/types"
+import { sha256hex } from "@lib/crypto"
+import { storeToken } from "@lib/password"
+import type { AppEnv } from "@types"
 
 import { forgotPasswordContract } from "./contracts"
 

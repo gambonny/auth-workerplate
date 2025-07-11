@@ -2,7 +2,7 @@ import { Temporal } from "@js-temporal/polyfill"
 import * as v from "valibot"
 
 import { otpRecordContract } from "./contracts"
-import type { OnErrorCallback } from "@/types"
+import type { OnErrorCallback } from "@types"
 
 export function generateOtp(): string {
   return Math.floor(Math.random() * 100_000_000)

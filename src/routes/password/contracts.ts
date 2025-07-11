@@ -1,16 +1,18 @@
 import * as v from "valibot"
-import { emailContract, passwordContract } from "@routes/auth/contracts"
+import { emailField, passwordField } from "@auth/contracts"
+
+const tokenField = v.pipe(v.string(), v.trim(), v.minLength(10))
 
 export const forgotPasswordContract = v.object({
-  email: emailContract,
+  email: emailField,
 })
 
 export const resetPasswordRecordContract = v.object({
-  token: v.string(),
-  email: emailContract,
+  token: tokenField,
+  email: emailField,
 })
 
 export const resetPasswordRouteParamsContract = v.object({
-  token: v.string(),
-  password: passwordContract,
+  token: tokenField,
+  password: passwordField,
 })

@@ -13,7 +13,12 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@routes/*": ["src/routes/*"]
+      "@types": ["src/types.ts"],
+      "@routes/*": ["src/routes/*"],
+      "@lib/*": ["src/lib/*"],
+      "@auth/*": ["src/lib/auth/*"],
+      "@otp/*": ["src/lib/otp/*"],
+      "@password/*": ["src/lib/password/*"]
     }
   }
 }

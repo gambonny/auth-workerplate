@@ -6,10 +6,10 @@ import { setCookie } from "hono/cookie"
 import * as v from "valibot"
 import { sign as jwtSign } from "@tsndr/cloudflare-worker-jwt"
 
-import { hashPassword } from "@/lib/crypto"
-import { loginContract } from "./contracts"
+import { hashPassword } from "@lib/crypto"
+import { loginContract } from "@auth/contracts"
 
-import type { AppEnv } from "@/types"
+import type { AppEnv } from "@types"
 
 export const loginRoute = new Hono<AppEnv>()
 

@@ -3,7 +3,7 @@ import { timing } from "hono/timing"
 import { setCookie } from "hono/cookie"
 
 import authMiddleware from "@/middlewares/auth"
-import type { AppEnv } from "@/types"
+import type { AppEnv } from "@types"
 
 export const logoutRoute = new Hono<AppEnv>()
 

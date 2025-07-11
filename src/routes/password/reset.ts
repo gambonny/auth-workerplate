@@ -6,7 +6,7 @@ import * as v from "valibot"
 
 import { hashPassword, sha256hex } from "@/lib/crypto"
 import { removeToken, verifyToken } from "@/lib/password"
-import type { AppEnv } from "@/types"
+import type { AppEnv } from "@types"
 
 import { resetPasswordRouteParamsContract } from "./contracts"
 

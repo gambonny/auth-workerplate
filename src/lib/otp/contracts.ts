@@ -1,15 +1,15 @@
 import * as v from "valibot"
-import { emailContract } from "@routes/auth/contracts"
+import { emailField } from "@auth/contracts"
 
-export const otpContract = v.pipe(v.string(), v.length(8))
+export const otpCodeField = v.pipe(v.string(), v.length(8))
 
 export const otpPayloadContract = v.object({
-  email: emailContract,
-  otp: otpContract,
+  email: emailField,
+  otp: otpCodeField,
 })
 
 export const otpRecordContract = v.object({
-  otp: otpContract,
+  otp: otpCodeField,
   attempts: v.pipe(
     v.number(),
     v.minValue(0),

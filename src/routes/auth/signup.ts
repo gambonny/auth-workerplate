@@ -4,11 +4,12 @@ import { validator } from "hono/validator"
 
 import * as v from "valibot"
 
-import { hashPassword, salt } from "@/lib/crypto"
-import { generateOtp, storeOtp } from "@/lib/otp/service"
-import { signupContract } from "./contracts"
+import { hashPassword, salt } from "@lib/crypto"
+import { generateOtp, storeOtp } from "@otp/service"
+import { signupPayloadContract } from "@auth/contracts"
 
-import type { AppEnv } from "@/types"
+import type { AppEnv } from "@types"
+import type { SignupPayload } from "@auth/contracts"
 
 export const signupRoute = new Hono<AppEnv>()
 
@@ -16,23 +17,22 @@ signupRoute.post(
   "/signup",
   timing({ totalDescription: "signup-request" }),
   validator("json", async (body, c) => {
-    const validation = v.safeParse(signupContract, body)
+    const validation = v.safeParse(signupPayloadContract, body)
     if (validation.success) return validation.output
 
     const logger = c.var.getLogger({ route: "auth.signup.validator" })
-    const issues = v.flatten(validation.issues).nested
 
     logger.warn("signup:validation:failed", {
       event: "validation.failed",
       scope: "validator.schema",
       input: validation.output,
-      issues,
+      issues: v.flatten(validation.issues).nested,
     })
 
-    return c.var.responder.error("Input invalid", issues, 400)
+    return c.var.responder.error("Input invalid")
   }),
   async (c): Promise<Response> => {
-    const { email, password } = c.req.valid("json")
+    const { email, password } = c.req.valid("json") as SignupPayload
     const logger = c.var.getLogger({ route: "auth.signup.handler" })
     const http = c.var.responder
 

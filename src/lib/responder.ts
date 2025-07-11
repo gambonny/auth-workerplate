@@ -1,6 +1,6 @@
 import { getContext } from "hono/context-storage"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
-import type { ValidationIssues } from "@/types"
+import type { ValidationIssues } from "@types"
 
 interface SuccessPayload<T> {
   status: "success"

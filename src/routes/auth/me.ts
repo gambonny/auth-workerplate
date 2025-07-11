@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { timing } from "hono/timing"
 import { getCookie } from "hono/cookie"
 
-import type { AppEnv, TokenSentinelService } from "@/types"
+import type { AppEnv, TokenSentinelService } from "@types"
 
 export const meRoute = new Hono<AppEnv>()
 
