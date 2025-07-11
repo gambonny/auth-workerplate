@@ -36,7 +36,7 @@ signupRoute.post(
     const logger = c.var.getLogger({ route: "auth.signup.handler" })
     const http = c.var.responder
 
-    logger.info("signup:started", {
+    logger.debug("signup:started", {
       event: "handler.started",
       scope: "handler.init",
       input: { email },
@@ -90,7 +90,7 @@ signupRoute.post(
           params: { email, otp },
         })
 
-        logger.debug("workflow:created", {
+        logger.info("workflow:created", {
           event: "workflow.created",
           scope: "workflow.signup",
           workflow: workflow.id,

@@ -39,7 +39,7 @@ verifyOtpRoute.post(
     const logger = c.var.getLogger({ route: "otp.verify.handler" })
     const http = c.var.responder
 
-    logger.info("otp:started", {
+    logger.debug("otp:started", {
       event: "handler.started",
       scope: "handler.init",
       input: { email },

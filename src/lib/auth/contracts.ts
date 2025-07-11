@@ -17,7 +17,7 @@ export const signupPayloadContract = v.object({
   password: passwordField,
 })
 
-export const loginContract = v.object({
+export const loginPayloadContract = v.object({
   email: emailField,
   password: passwordField,
 })
@@ -29,4 +29,5 @@ export const userPayloadContract = v.object({
 })
 
 export type SignupPayload = v.InferOutput<typeof signupPayloadContract>
+export type LoginPayload = v.InferOutput<typeof loginPayloadContract>
 export type UserPayload = v.InferOutput<typeof userPayloadContract>

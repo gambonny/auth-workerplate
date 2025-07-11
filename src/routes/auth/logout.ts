@@ -14,7 +14,7 @@ logoutRoute.post(
   async c => {
     const logger = c.var.getLogger({ route: "auth.logout.handler" })
 
-    logger.log("user:logout", {
+    logger.debug("user:logout", {
       event: "logout.started",
       scope: "auth.session",
     })

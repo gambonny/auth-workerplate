@@ -7,9 +7,10 @@ import * as v from "valibot"
 import { sign as jwtSign } from "@tsndr/cloudflare-worker-jwt"
 
 import { hashPassword } from "@lib/crypto"
-import { loginContract } from "@auth/contracts"
+import { loginPayloadContract } from "@auth/contracts"
 
 import type { AppEnv } from "@types"
+import type { LoginPayload } from "@auth/contracts"
 
 export const loginRoute = new Hono<AppEnv>()
 
@@ -17,27 +18,26 @@ loginRoute.post(
   "/login",
   timing({ totalDescription: "login-request" }),
   validator("json", async (body, c) => {
-    const validation = v.safeParse(loginContract, body)
+    const validation = v.safeParse(loginPayloadContract, body)
     if (validation.success) return validation.output
 
     const logger = c.var.getLogger({ route: "auth.login.validator" })
-    const issues = v.flatten(validation.issues).nested
 
     logger.warn("login:validation:failed", {
       event: "validation.failed",
       scope: "validator.schema",
       input: validation.output,
-      issues,
+      issues: v.flatten(validation.issues).nested,
     })
 
-    return c.var.responder.error("Invalid input", issues, 400)
+    return c.var.responder.error("Invalid input")
   }),
   async (c): Promise<Response> => {
     const logger = c.var.getLogger({ route: "auth.login.handler" })
-    const { email, password } = c.req.valid("json")
+    const { email, password } = c.req.valid("json") as LoginPayload
     const http = c.var.responder
 
-    logger.info("login:started", {
+    logger.debug("login:started", {
       event: "login.attempt",
       scope: "auth.session",
       input: { email },
@@ -59,9 +59,10 @@ loginRoute.post(
 
     // 5) Check existence & activation
     if (!row || row.active !== 1) {
-      logger.warn("login:failed", {
-        event: "login.invalid-credentials",
-        scope: "auth.session",
+      logger.warn("email:not:found", {
+        event: "email.not.found",
+        scope: "db.users",
+        reason: "user doesn't exist in the database",
         input: { email },
       })
 

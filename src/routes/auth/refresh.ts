@@ -18,14 +18,15 @@ refreshRoute.post(
   "refresh",
   timing({ totalDescription: "refresh-request" }),
   async c => {
+    const http = c.var.responder
     const refreshToken = getCookie(c, "refresh_token")
     if (!refreshToken) {
-      return c.var.responder.error("Missing refresh token", {}, 401)
+      return http.error("Missing refresh token", {}, 401)
     }
 
     const verified = await jwtVerify(refreshToken, "secretito")
     if (!verified) {
-      return c.var.responder.error("Invalid refresh token", {}, 401)
+      return http.error("Invalid refresh token", {}, 401)
     }
 
     const { success, output: userPayload } = v.safeParse(
@@ -34,7 +35,7 @@ refreshRoute.post(
     )
 
     if (!success) {
-      return c.var.responder.error("Malformed token")
+      return http.error("Malformed token")
     }
 
     const newAccessToken = await jwtSign(
@@ -53,6 +54,6 @@ refreshRoute.post(
       path: "/",
     })
 
-    return c.var.responder.success("Access token refreshed")
+    return http.success("Access token refreshed")
   },
 )
