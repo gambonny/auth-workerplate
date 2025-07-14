@@ -86,8 +86,8 @@ loginRoute.post(
     const accessPayload = { id: row.id, email, exp: now + 60 * 60 }
     const refreshPayload = { id: row.id, email, exp: now + 60 * 60 * 24 * 14 }
 
-    const accessToken = await jwtSign(accessPayload, "secretito")
-    const refreshToken = await jwtSign(refreshPayload, "secretito")
+    const accessToken = await jwtSign(accessPayload, c.env.JWT_SECRET)
+    const refreshToken = await jwtSign(refreshPayload, c.env.JWT_SECRET)
 
     // 8) Set cookies
     setCookie(c, "token", accessToken, {

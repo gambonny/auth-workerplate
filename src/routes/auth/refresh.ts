@@ -24,7 +24,7 @@ refreshRoute.post(
       return http.error("Missing refresh token", {}, 401)
     }
 
-    const verified = await jwtVerify(refreshToken, "secretito")
+    const verified = await jwtVerify(refreshToken, c.env.JWT_SECRET)
     if (!verified) {
       return http.error("Invalid refresh token", {}, 401)
     }
@@ -43,7 +43,7 @@ refreshRoute.post(
         ...userPayload,
         exp: Math.floor(Date.now() / 1000) + 60 * 60,
       } satisfies UserPayload,
-      "secretito",
+      c.env.JWT_SECRET,
     )
 
     setCookie(c, "token", newAccessToken, {
