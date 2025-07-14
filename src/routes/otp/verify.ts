@@ -99,8 +99,8 @@ verifyOtpRoute.post(
           exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 14,
         } satisfies UserPayload
 
-        const accessToken = await jwtSign(accessPayload, c.env.JWT_TOKEN) //TODO:
-        const refreshToken = await jwtSign(refreshPayload, c.env.JWT_SECRET)
+        const accessToken = await jwtSign(accessPayload, c.env.JWT_TOKEN)
+        const refreshToken = await jwtSign(refreshPayload, c.env.JWT_TOKEN)
 
         setCookie(c, "token", accessToken, {
           httpOnly: true,
