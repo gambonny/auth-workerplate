@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
+    "@types/node": "^24.0.13",
     "type-fest": "^4.41.0",
     "wrangler": "^4.22.0"
   },

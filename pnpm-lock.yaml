@@ -36,6 +36,9 @@ importers:
       '@biomejs/biome':
         specifier: 1.9.4
         version: 1.9.4
+      '@types/node':
+        specifier: ^24.0.13
+        version: 24.0.13
       type-fest:
         specifier: ^4.41.0
         version: 4.41.0
@@ -447,6 +450,9 @@ packages:
   '@tsndr/cloudflare-worker-jwt@3.2.0':
     resolution: {integrity: sha512-y45452JzKxFDfCUHNGrdgIcrJTkYa6xtrKtCQTjKj+hjzw8dOHF9R0uGuU8WxvCCMi4sMzZ1KREnZTsTy7DsiQ==}
 
+  '@types/node@24.0.13':
+    resolution: {integrity: sha512-Qm9OYVOFHFYg3wJoTSrz80hoec5Lia/dPp84do3X7dZvLikQvM1YpmvTBEdIr/e+U8HTkFjLHLnl78K/qjf+jQ==}
+
   acorn-walk@8.3.2:
     resolution: {integrity: sha512-cjkyv4OtNCIeqhHrfS81QWXoCBPExR/J62oyEqepVw8WaQeSqpW2uhuLPh1m9eWhDuOo/jUXVTlifvesOWp/4A==}
     engines: {node: '>=0.4.0'}
@@ -651,6 +657,9 @@ packages:
 
   ufo@1.6.1:
     resolution: {integrity: sha512-9a4/uxlTWJ4+a5i0ooc1rU7C7YOw3wT+UGqdeNNHWnOF9qcMBgLRS+4IYUqbczewFx4mLEig6gawh7X6mFlEkA==}
+
+  undici-types@7.8.0:
+    resolution: {integrity: sha512-9UJ2xGDvQ43tYyVMpuHlsgApydB8ZKfVYTsLDhXkFL/6gfkp+U8xTGdh8pMJv1SpZna0zxG1DwsKZsreLbXBxw==}
 
   undici@5.29.0:
     resolution: {integrity: sha512-raqeBD6NQK4SkWhQzeYKd1KmIG6dllBOTt55Rmkt4HtI9mwdWtJljnrXjAFUBLTSN67HWrOIZ3EPF4kjUw80Bg==}
@@ -963,6 +972,10 @@ snapshots:
 
   '@tsndr/cloudflare-worker-jwt@3.2.0': {}
 
+  '@types/node@24.0.13':
+    dependencies:
+      undici-types: 7.8.0
+
   acorn-walk@8.3.2: {}
 
   acorn@8.14.0: {}
@@ -1198,6 +1211,8 @@ snapshots:
   type-fest@4.41.0: {}
 
   ufo@1.6.1: {}
+
+  undici-types@7.8.0: {}
 
   undici@5.29.0:
     dependencies:
