@@ -1,6 +1,6 @@
 import { Hono } from "hono"
 import { timing } from "hono/timing"
-import { getCookie, setCookie } from "hono/cookie"
+import { getCookie } from "hono/cookie"
 
 import {
   sign as jwtSign,
@@ -11,6 +11,7 @@ import * as v from "valibot"
 
 import type { AppEnv } from "@types"
 import { userPayloadSchema, type UserPayload } from "@auth/schemas"
+import { setSecureCookie } from "@/lib/cookies"
 
 export const refreshRoute = new Hono<AppEnv>()
 
@@ -24,7 +25,7 @@ refreshRoute.post(
       return http.error("Missing refresh token", {}, 401)
     }
 
-    const verified = await jwtVerify(refreshToken, c.env.JWT_SECRET)
+    const verified = await jwtVerify(refreshToken, c.env.JWT_TOKEN)
     if (!verified) {
       return http.error("Invalid refresh token", {}, 401)
     }
@@ -43,16 +44,10 @@ refreshRoute.post(
         ...userPayload,
         exp: Math.floor(Date.now() / 1000) + 60 * 60,
       } satisfies UserPayload,
-      c.env.JWT_SECRET,
+      c.env.JWT_TOKEN,
     )
 
-    setCookie(c, "token", newAccessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      maxAge: 3600,
-      path: "/",
-    })
+    setSecureCookie(c, "token", newAccessToken, 60 * 60)
 
     return http.success("Access token refreshed")
   },

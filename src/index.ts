@@ -69,7 +69,7 @@ const app = new Hono<AppEnv>()
 
 app.use(
   cors({
-    origin: ["http://localhost:4173", "http://localhost:5173"],
+    origin: ["http://localhost:4173", "http://localhost:5173"], // TODO: from config file
     credentials: true,
   }),
 )

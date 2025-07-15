@@ -1,5 +1,4 @@
 import { Hono } from "hono"
-import { setCookie } from "hono/cookie"
 import { timing, setMetric } from "hono/timing"
 import { validator } from "hono/validator"
 
@@ -12,6 +11,7 @@ import { otpPayloadSchema } from "@otp/schemas"
 import type { AppEnv } from "@types"
 import type { UserPayload } from "@auth/schemas"
 import type { OtpPayload } from "@otp/schemas"
+import { issueAuthCookies } from "@/lib/cookies"
 
 export const verifyOtpRoute = new Hono<AppEnv>()
 
@@ -101,22 +101,7 @@ verifyOtpRoute.post(
 
         const accessToken = await jwtSign(accessPayload, c.env.JWT_TOKEN)
         const refreshToken = await jwtSign(refreshPayload, c.env.JWT_TOKEN)
-
-        setCookie(c, "token", accessToken, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "None",
-          maxAge: 3600,
-          path: "/",
-        })
-
-        setCookie(c, "refresh_token", refreshToken, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "None",
-          maxAge: 60 * 60 * 24 * 14,
-          path: "/",
-        })
+        issueAuthCookies(c, accessToken, refreshToken)
 
         return http.success("user activated")
       }

@@ -1,9 +1,9 @@
 import { Hono } from "hono"
 import { timing } from "hono/timing"
-import { setCookie } from "hono/cookie"
 
 import authMiddleware from "@/middlewares/auth"
 import type { AppEnv } from "@types"
+import { clearAuthCookies } from "@/lib/cookies"
 
 export const logoutRoute = new Hono<AppEnv>()
 
@@ -19,22 +19,7 @@ logoutRoute.post(
       scope: "auth.session",
     })
 
-    // Expire the tokens by setting maxAge=0
-    setCookie(c, "token", "", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      path: "/",
-      maxAge: 0,
-    })
-
-    setCookie(c, "refresh_token", "", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      path: "/",
-      maxAge: 0,
-    })
+    clearAuthCookies(c)
 
     logger.log("user:logout:success", {
       event: "logout.success",

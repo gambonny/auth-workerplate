@@ -20,6 +20,7 @@ meRoute.get(
     }
 
     try {
+      logger.log("token:sentinel:started")
       const sentinel = c.env.AUTH_SENTINEL as unknown as TokenSentinelService
       const user = await sentinel.validateToken(token)
 

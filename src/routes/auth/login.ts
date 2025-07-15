@@ -1,7 +1,6 @@
 import { Hono } from "hono"
 import { timing } from "hono/timing"
 import { validator } from "hono/validator"
-import { setCookie } from "hono/cookie"
 
 import * as v from "valibot"
 import { sign as jwtSign } from "@tsndr/cloudflare-worker-jwt"
@@ -11,6 +10,7 @@ import { loginPayloadSchema } from "@auth/schemas"
 
 import type { AppEnv } from "@types"
 import type { LoginPayload } from "@auth/schemas"
+import { issueAuthCookies } from "@/lib/cookies"
 
 export const loginRoute = new Hono<AppEnv>()
 
@@ -88,21 +88,7 @@ loginRoute.post(
     try {
       const accessToken = await jwtSign(accessPayload, c.env.JWT_SECRET)
       const refreshToken = await jwtSign(refreshPayload, c.env.JWT_SECRET)
-
-      setCookie(c, "token", accessToken, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "None",
-        maxAge: 60 * 60,
-        path: "/",
-      })
-      setCookie(c, "refresh_token", refreshToken, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "None",
-        maxAge: 60 * 60 * 24 * 14,
-        path: "/",
-      })
+      issueAuthCookies(c, accessToken, refreshToken)
 
       logger.info("login:success", {
         event: "login.success",
