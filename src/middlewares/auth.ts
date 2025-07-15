@@ -4,6 +4,10 @@ import { createMiddleware } from "hono/factory"
 import type { AppEnv, TokenSentinelService } from "@types"
 
 const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
+  if (!c.var.getLogger || !c.var.responder) {
+    throw new Error("authMiddleware mis‑ordered: logger/responder missing")
+  }
+
   const logger = c.var.getLogger({ route: "auth.middleware" })
   const http = c.var.responder
 

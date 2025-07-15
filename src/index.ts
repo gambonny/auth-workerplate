@@ -14,7 +14,7 @@ import { useLogger } from "@gambonny/cflo"
 
 import routes from "@/routes"
 import responderMiddleware from "@/middlewares/responder"
-import thread from "@/middlewares/thread"
+// import thread from "@/middlewares/thread"
 import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "@types"
 
 export class SignupWorkflow extends WorkflowEntrypoint<
@@ -74,6 +74,7 @@ app.use(
     credentials: true,
   }),
 )
+// app.use(thread)
 app.use(contextStorage())
 app.use(responderMiddleware)
 app.use(secureHeaders())
@@ -93,7 +94,6 @@ app.use(async (c, next) => {
   })(c, next)
 })
 
-app.use(thread)
 app.route("/", routes)
 
 app.notFound(c => {
