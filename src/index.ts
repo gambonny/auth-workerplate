@@ -13,8 +13,9 @@ import { Resend } from "resend"
 import { useLogger } from "@gambonny/cflo"
 
 import routes from "@/routes"
-import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "@types"
 import responderMiddleware from "@/middlewares/responder"
+import thread from "@/middlewares/thread"
+import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "@types"
 
 export class SignupWorkflow extends WorkflowEntrypoint<
   SignupWorkflowEnv,
@@ -92,6 +93,7 @@ app.use(async (c, next) => {
   })(c, next)
 })
 
+app.use(thread)
 app.route("/", routes)
 
 app.notFound(c => {
