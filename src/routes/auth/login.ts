@@ -81,36 +81,38 @@ loginRoute.post(
       return http.error("Invalid email or password", {}, 401)
     }
 
-    // 7) Issue tokens
     const now = Math.floor(Date.now() / 1000)
     const accessPayload = { id: row.id, email, exp: now + 60 * 60 }
     const refreshPayload = { id: row.id, email, exp: now + 60 * 60 * 24 * 14 }
 
-    const accessToken = await jwtSign(accessPayload, c.env.JWT_SECRET)
-    const refreshToken = await jwtSign(refreshPayload, c.env.JWT_SECRET)
+    try {
+      const accessToken = await jwtSign(accessPayload, c.env.JWT_SECRET)
+      const refreshToken = await jwtSign(refreshPayload, c.env.JWT_SECRET)
 
-    // 8) Set cookies
-    setCookie(c, "token", accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      maxAge: 60 * 60,
-      path: "/",
-    })
-    setCookie(c, "refresh_token", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      maxAge: 60 * 60 * 24 * 14,
-      path: "/",
-    })
+      setCookie(c, "token", accessToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "None",
+        maxAge: 60 * 60,
+        path: "/",
+      })
+      setCookie(c, "refresh_token", refreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "None",
+        maxAge: 60 * 60 * 24 * 14,
+        path: "/",
+      })
 
-    logger.info("login:success", {
-      event: "login.success",
-      scope: "auth.session",
-      input: { userId: row.id },
-    })
+      logger.info("login:success", {
+        event: "login.success",
+        scope: "auth.session",
+        input: { userId: row.id },
+      })
 
-    return http.success("Logged in successfully")
+      return http.success("Logged in successfully")
+    } catch (e: unknown) {
+      return http.error(String(e))
+    }
   },
 )
