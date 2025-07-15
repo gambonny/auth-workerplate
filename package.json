@@ -8,21 +8,21 @@
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
-    "@gambonny/cflo": "^0.0.13",
-    "@hono/ua-blocker": "^0.1.2",
+    "@gambonny/cflo": "^0.0.14-beta.0",
+    "@hono/ua-blocker": "^0.1.5",
     "@js-temporal/polyfill": "^0.5.1",
     "@noble/hashes": "^1.8.0",
     "@tsndr/cloudflare-worker-jwt": "^3.2.0",
     "exponential-backoff": "^3.1.2",
-    "hono": "^4.8.3",
+    "hono": "^4.8.5",
     "resend": "^4.6.0",
     "valibot": "^1.1.0"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@types/node": "^24.0.13",
+    "@types/node": "^24.0.14",
     "type-fest": "^4.41.0",
-    "wrangler": "^4.22.0"
+    "wrangler": "^4.24.3"
   },
-  "packageManager": "pnpm@10.12.4"
+  "packageManager": "pnpm@10.13.1"
 }

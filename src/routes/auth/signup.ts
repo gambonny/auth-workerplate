@@ -33,13 +33,15 @@ signupRoute.post(
   }),
   async (c): Promise<Response> => {
     const { email, password } = c.req.valid("json") as SignupPayload
-    const logger = c.var.getLogger({ route: "auth.signup.handler" })
     const http = c.var.responder
+    const logger = c.var.getLogger({
+      route: "auth.signup.handler",
+      hashed_email: c.var.hash(email),
+    })
 
     logger.debug("signup:started", {
       event: "handler.started",
       scope: "handler.init",
-      input: { email },
     })
 
     try {
@@ -55,7 +57,6 @@ signupRoute.post(
       logger.debug("preparing:user:registration", {
         event: "db.insert.started",
         scope: "db.users",
-        input: { email },
       })
 
       const result = await c.env.DB.prepare(
@@ -68,19 +69,13 @@ signupRoute.post(
       logger.info("user:registered", {
         event: "db.insert.success",
         scope: "db.users",
-        input: {
-          email: c.var.hash(email),
-          db: {
-            duration: result.meta.duration,
-          },
-        },
+        input: { db: { duration: result.meta.duration } },
       })
 
       const otpStored = await storeOtp(c.env, email, otp, issues => {
         logger.error("otp:store:failed", {
           event: "kv.otp.storing.failed",
           scope: "vk.otp",
-          input: { email },
           issues,
         })
       })
@@ -107,7 +102,6 @@ signupRoute.post(
             event: "db.insert.conflict",
             scope: "db.users",
             reason: "email taken",
-            input: { email },
           })
 
           return http.error(
