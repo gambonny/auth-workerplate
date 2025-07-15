@@ -2,6 +2,7 @@ import type { TimingVariables } from "hono/timing"
 import type { UnknownRecord } from "type-fest"
 import type { GetLoggerFn } from "@gambonny/cflo"
 import type { Responder } from "@/lib/responder"
+import type { makeHasher } from "@/lib/hash"
 
 export type SignupWorkflowEnv = {
   THIS_WORKFLOW: Workflow
@@ -20,6 +21,7 @@ export type AppEnv = {
     thread: string
     getLogger: GetLoggerFn
     responder: Responder
+    hash: ReturnType<typeof makeHasher>
   } & TimingVariables
 }
 

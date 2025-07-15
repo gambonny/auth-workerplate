@@ -69,7 +69,7 @@ signupRoute.post(
         event: "db.insert.success",
         scope: "db.users",
         input: {
-          email,
+          email: c.var.hash(email),
           db: {
             duration: result.meta.duration,
           },

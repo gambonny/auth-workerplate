@@ -14,6 +14,7 @@ import { useLogger } from "@gambonny/cflo"
 
 import routes from "@/routes"
 import responderMiddleware from "@/middlewares/responder"
+import hasherMiddleware from "@/middlewares/hasher"
 // import thread from "@/middlewares/thread"
 import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "@types"
 
@@ -94,6 +95,7 @@ app.use(async (c, next) => {
   })(c, next)
 })
 
+app.use(hasherMiddleware)
 app.route("/", routes)
 
 app.notFound(c => {
