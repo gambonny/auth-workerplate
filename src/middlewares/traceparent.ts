@@ -1,10 +1,10 @@
 import { createMiddleware } from "hono/factory"
 
 /**
- * Middleware that enforces presence of the `x-thread-id` header.
+ * Middleware that enforces presence of the `traceparent` header.
  *
  * This acts as a structural contract: every incoming request must be
- * traceable to a client-triggered interaction. By requiring a thread ID:
+ * traceable to a client-triggered interaction. By requiring a traceparent ID:
  *
  * - We guarantee that no request enters the system without an identifiable origin.
  * - We enable end-to-end correlation between consumers actions and backend logs.
@@ -15,25 +15,25 @@ import { createMiddleware } from "hono/factory"
  *
  * This middleware should run first, before logger setup or route handling.
  */
-const thread = createMiddleware(async (c, next) => {
+const traceparent = createMiddleware(async (c, next) => {
   c.header("Timing-Allow-Origin", "http://localhost:5173")
   c.header("Timing-Allow-Origin", "http://localhost:4173")
 
-  const thread = c.req.header("x-thread-id")
+  const traceparent = c.req.header("traceparent")
 
-  if (!thread) {
+  if (!traceparent) {
     console.warn("request.rejected", {
-      reason: "missing_thread_id",
+      reason: "missing_traceparent_id",
       path: c.req.path,
-      thread,
+      traceparent,
     })
 
     return c.text("Bad request", 400)
   }
 
-  c.set("thread", thread)
+  c.set("traceparent", traceparent)
 
   await next()
 })
 
-export default thread
+export default traceparent

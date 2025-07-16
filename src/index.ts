@@ -15,7 +15,7 @@ import { useLogger } from "@gambonny/cflo"
 import routes from "@/routes"
 import responderMiddleware from "@/middlewares/responder"
 import hasherMiddleware from "@/middlewares/hasher"
-// import thread from "@/middlewares/thread"
+// import traceparent from "@/middlewares/traceparent"
 import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "@types"
 
 export class SignupWorkflow extends WorkflowEntrypoint<
@@ -75,7 +75,7 @@ app.use(
     credentials: true,
   }),
 )
-// app.use(thread)
+// app.use(traceparent)
 app.use(contextStorage())
 app.use(responderMiddleware)
 app.use(secureHeaders())
@@ -90,7 +90,7 @@ app.use(async (c, next) => {
     context: {
       appName: "auth-worker",
       deployId: env.CF_VERSION_METADATA.id,
-      thread: c.get("thread"),
+      thread: c.get("traceparent"),
     },
   })(c, next)
 })

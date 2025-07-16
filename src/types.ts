@@ -18,7 +18,7 @@ export type SignupWorkflowParams = {
 export type AppEnv = {
   Bindings: CloudflareBindings
   Variables: {
-    thread: string
+    traceparent: string
     getLogger: GetLoggerFn
     responder: Responder
     hash: ReturnType<typeof makeHasher>
