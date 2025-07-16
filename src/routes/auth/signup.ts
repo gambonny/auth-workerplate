@@ -76,7 +76,7 @@ signupRoute.post(
         const stored = await c.var.backoff(
           () =>
             storeOtp(c.env, email, otp, issues => {
-              logger.error("otp:schema:failed", {
+              logger.error("otp:schema:invalid", {
                 event: "otp.schema.failed",
                 scope: "otp.schema",
                 issues,

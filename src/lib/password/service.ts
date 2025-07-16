@@ -7,7 +7,7 @@ const EXPIRATION_SECONDS = 60 * 60 // 1 hour
 
 /**
  * Store a reset‐password token in KV.
- * @returns true on success, false on failure (and calls onError with issues)
+ * Let KV errors bubble so the route’s backoff can catch/retry them.
  */
 export async function storeToken(
   env: Cloudflare.Env,
@@ -26,15 +26,9 @@ export async function storeToken(
     return false
   }
 
-  try {
-    await env.OTP_STORE.put(resetTokenKey(token), JSON.stringify(record), {
-      expirationTtl: EXPIRATION_SECONDS,
-    })
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e)
-    onError?.({ kv: [msg] })
-    return false
-  }
+  await env.OTP_STORE.put(resetTokenKey(token), JSON.stringify(record), {
+    expirationTtl: EXPIRATION_SECONDS,
+  })
 
   return true
 }
@@ -58,8 +52,8 @@ export async function verifyToken(
   } = v.safeParse(resetPasswordRecordSchema, raw)
 
   if (!success) {
-    await env.OTP_STORE.delete(key)
     onError?.(v.flatten(issues).nested)
+    await env.OTP_STORE.delete(key)
     return false
   }
 
@@ -67,25 +61,6 @@ export async function verifyToken(
   return record.email
 }
 
-/**
- * Remove a reset token manually (if needed).
- * @returns true on success, false on failure (and calls onError)
- */
-export async function removeToken(
-  env: Cloudflare.Env,
-  token: string,
-  onError?: OnErrorCallback,
-): Promise<boolean> {
-  try {
-    await env.OTP_STORE.delete(resetTokenKey(token))
-    return true
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e)
-    onError?.({ kv: [msg] })
-    return false
-  }
-}
-
-function resetTokenKey(token: string) {
+export function resetTokenKey(token: string) {
   return `reset:${token.trim().toLowerCase()}`
 }

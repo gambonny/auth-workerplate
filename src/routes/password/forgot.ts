@@ -3,7 +3,6 @@ import { timing } from "hono/timing"
 import { validator } from "hono/validator"
 
 import * as v from "valibot"
-import { backOff } from "exponential-backoff"
 import { Resend } from "resend"
 
 import { sha256hex } from "@lib/crypto"
@@ -46,20 +45,43 @@ passwordForgotRoute.post(
       scope: "auth.password",
     })
 
-    // generate token + hash
     const rawToken = crypto.randomUUID()
     const tokenHash = await sha256hex(rawToken)
 
-    // store in KV, log on failure
-    const stored = await storeToken(c.env, email, tokenHash, issues => {
-      logger.error("password:forgot:token-store-failed", {
-        event: "kv.password.storing.failed",
-        scope: "kv.password",
-        issues,
-      })
-    })
+    try {
+      const stored = await c.var.backoff(
+        () =>
+          storeToken(c.env, email, tokenHash, issues => {
+            logger.error("password:forgot:token-store-schema-failed", {
+              event: "kv.password.schema.failed",
+              scope: "kv.password",
+              issues,
+            })
+          }),
+        {
+          retry: (err, attempt) => {
+            logger.debug("password:forgot:token-store-retry", {
+              attempt,
+              error: err instanceof Error ? err.message : String(err),
+            })
+            return true
+          },
+        },
+      )
 
-    if (!stored) {
+      if (!stored) {
+        return http.error(
+          "Failed to generate reset token, please try again later",
+          {},
+          500,
+        )
+      }
+    } catch (e: unknown) {
+      logger.error("password:forgot:token-store-failed", {
+        event: "kv.password.store.failed",
+        scope: "kv.password",
+        error: e instanceof Error ? e.message : String(e),
+      })
       return http.error(
         "Failed to generate reset token, please try again later",
         {},
@@ -72,29 +94,32 @@ passwordForgotRoute.post(
       scope: "kv.password",
     })
 
-    // send email
     try {
       const resend = new Resend(c.env.RESEND)
-      const { error } = await backOff(
+      const { error } = await c.var.backoff(
         () =>
           resend.emails.send({
             from: "me@mail.gambonny.com",
-            to: "gambonny@gmail.com",
+            to: email,
             subject: "Your password reset token",
             html: `<p>Your reset token is <strong>${rawToken}</strong>. It expires in 1 hour.</p>`,
           }),
         {
-          jitter: "full",
-          startingDelay: 100,
-          timeMultiple: 2,
-          maxDelay: 1000,
-          numOfAttempts: 4,
-          retry: e => {
-            // retry only on transient network or 5xx errors
-            if (e instanceof Error && e.message.includes("429")) return true
-            if (e instanceof Error && e.message.includes("timeout")) return true
-            if (e instanceof Error && e.message.match(/^5\d\d/)) return true
-            return false
+          retry: (err, attempt) => {
+            const msg = err instanceof Error ? err.message : String(err)
+            const isTransient =
+              msg.includes("429") ||
+              msg.includes("timeout") ||
+              /^5\d\d/.test(msg)
+
+            if (isTransient) {
+              logger.debug("password:forgot:email-retry", {
+                attempt,
+                error: msg,
+              })
+            }
+
+            return isTransient
           },
         },
       )

@@ -51,8 +51,8 @@ verifyOtpRoute.post(
       const verified = await c.var.backoff(
         () =>
           verifyOtp(c.env, email, otp, issues => {
-            logger.warn("otp:schema:failed", {
-              event: "otp.schema.failed",
+            logger.warn("otp:record:malformed", {
+              event: "otp.retrieval.failed",
               scope: "otp.schema",
               input: { otp },
               issues,

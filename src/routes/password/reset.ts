@@ -5,7 +5,7 @@ import { validator } from "hono/validator"
 import * as v from "valibot"
 
 import { hashPassword, sha256hex } from "@/lib/crypto"
-import { removeToken, verifyToken } from "@password/service"
+import { resetTokenKey, verifyToken } from "@password/service"
 import { resetPasswordPayloadSchema } from "@password/schemas"
 
 import type { AppEnv } from "@types"
@@ -34,26 +34,50 @@ passwordResetRoute.post(
   async (c): Promise<Response> => {
     const { token, password } = c.req.valid("json") as ResetPasswordPayload
     const http = c.var.responder
+    const logger = c.var.getLogger({ route: "auth.reset.handler" })
 
-    // hash the provided token to compare against stored hash
     const hashedToken = await sha256hex(token)
-    const email = await verifyToken(c.env, hashedToken)
 
-    const logger = c.var.getLogger({
-      route: "auth.reset.handler",
-      ...(email ? { hashed_email: c.var.hash(email) } : {}),
-    })
+    let email: string | false
+    try {
+      email = await c.var.backoff(
+        () =>
+          verifyToken(c.env, hashedToken, issues => {
+            logger.warn("password:reset:token:malformed", {
+              event: "reset-token.malformed",
+              scope: "kv.reset-token.schema",
+              issues,
+            })
+          }),
+        {
+          retry: (err, attempt) => {
+            logger.debug("password:reset:token-verify-retry", {
+              attempt,
+              error: err instanceof Error ? err.message : String(err),
+            })
 
-    if (!email) {
-      logger.warn("reset-token:expired", {
-        event: "reset-token.expired",
-        scope: "kv.reset-token",
+            return true
+          },
+        },
+      )
+
+      if (!email) {
+        return http.error(
+          "Token has expired, please request a new one",
+          {},
+          410,
+        )
+      }
+    } catch (err: unknown) {
+      logger.error("password:reset:token-verify-failed", {
+        event: "kv.password.verify.failed",
+        scope: "kv.password",
+        error: err instanceof Error ? err.message : String(err),
       })
 
-      return http.error("Token has expired, please request a new one", {}, 410)
+      return http.error("Token verification failed, please try again", {}, 500)
     }
 
-    // try to find a user with that email
     const user = await c.env.DB.prepare(
       "SELECT id, salt FROM users WHERE email = ?",
     )
@@ -61,32 +85,31 @@ passwordResetRoute.post(
       .first<{ id: number; salt: string }>()
 
     if (!user) {
-      logger.warn("password:reset:failed:user:notfound", {
+      logger.warn("password:reset:user-notfound", {
         event: "email.notfound",
         scope: "db.users",
       })
 
-      return http.error("User not found", {}, 404) //TODO: return a more generic message
+      return http.error("User not found", {}, 404)
     }
 
-    // hash the new password with existing salt
     const passwordHash = await hashPassword(password, user.salt)
-
     const result = await c.env.DB.prepare(
-      `UPDATE users SET password_hash = ?
-       WHERE id = ?`,
+      "UPDATE users SET password_hash = ? WHERE id = ?",
     )
       .bind(passwordHash, user.id)
       .run()
 
     setMetric(c, "db.duration", result.meta.duration)
-
     logger.info("password:reset:success", {
       event: "password.reset.success",
       scope: "db.users",
     })
 
-    await removeToken(c.env, hashedToken)
+    try {
+      await c.env.OTP_STORE.delete(resetTokenKey(token))
+    } catch {}
+
     return http.success("Password has been successfully reset")
   },
 )
