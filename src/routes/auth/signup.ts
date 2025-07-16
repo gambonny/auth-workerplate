@@ -72,29 +72,54 @@ signupRoute.post(
         input: { db: { duration: result.meta.duration } },
       })
 
-      const otpStored = await storeOtp(c.env, email, otp, issues => {
-        logger.error("otp:store:failed", {
-          event: "kv.otp.storing.failed",
-          scope: "vk.otp",
-          issues,
-        })
-      })
+      try {
+        const stored = await c.var.backoff(
+          () =>
+            storeOtp(c.env, email, otp, issues => {
+              logger.error("otp:schema:failed", {
+                event: "otp.schema.failed",
+                scope: "otp.schema",
+                issues,
+              })
+            }),
+          {
+            retry: (e, attempt) => {
+              logger.debug("otp:store:attempt", {
+                input: otp,
+                attempt,
+                event: "otp.store.attempt",
+                scope: "kv.otp.backoff.retry",
+                error: e instanceof Error ? e.message : String(e),
+              })
 
-      if (otpStored) {
-        const workflow = await c.env.SIGNUP_WFW.create({
-          params: { email, otp },
+              return true
+            },
+          },
+        )
+
+        if (!stored) return http.error("error during otp creation")
+      } catch (e: unknown) {
+        logger.error("otp:storage:failed", {
+          event: "otp.store.failed",
+          scope: "kv.otp",
+          input: { otp },
+          error: e instanceof Error ? e.message : String(e),
         })
 
-        logger.info("workflow:created", {
-          event: "workflow.created",
-          scope: "workflow.signup",
-          workflow: workflow.id,
-        })
-
-        return http.created("User registered, email with otp has been sent")
+        return http.error("unknown error", {}, 500)
       }
 
-      return http.error("User registerd but email with otp couldn't be sent")
+      const workflow = await c.env.SIGNUP_WFW.create({
+        params: { email, otp },
+      })
+
+      logger.info("workflow:created", {
+        event: "workflow.created",
+        scope: "workflow.signup",
+        workflow: workflow.id,
+      })
+
+      return http.created("User registered, email with otp has been sent")
     } catch (err) {
       if (err instanceof Error) {
         if (err.message.includes("UNIQUE constraint failed")) {

@@ -52,15 +52,15 @@ export async function verifyOtp(
   } = v.safeParse(otpRecordSchema, await env.OTP_STORE.get(key, "json"))
 
   if (!success) {
-    await env.OTP_STORE.delete(key)
     onError?.(v.flatten(issues).nested)
+    await env.OTP_STORE.delete(key)
     return false
   }
 
   if (record.otp !== submitted) {
     record.attempts++
-    await env.OTP_STORE.put(key, JSON.stringify(record))
     onError?.({ otp: [`otp invalid -- attempt #${record.attempts}`] })
+    await env.OTP_STORE.put(key, JSON.stringify(record))
     return false
   }
 
