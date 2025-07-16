@@ -33,14 +33,16 @@ loginRoute.post(
     return c.var.responder.error("Invalid input")
   }),
   async (c): Promise<Response> => {
-    const logger = c.var.getLogger({ route: "auth.login.handler" })
     const { email, password } = c.req.valid("json") as LoginPayload
     const http = c.var.responder
+    const logger = c.var.getLogger({
+      route: "auth.login.handler",
+      hashed_email: c.var.hash(email),
+    })
 
     logger.debug("login:started", {
       event: "login.attempt",
       scope: "auth.session",
-      input: { email },
     })
 
     // 4) Fetch user by email
@@ -63,7 +65,6 @@ loginRoute.post(
         event: "email.not.found",
         scope: "db.users",
         reason: "user doesn't exist in the database",
-        input: { email },
       })
 
       return http.error("Invalid email or password", {}, 401)
@@ -75,7 +76,6 @@ loginRoute.post(
       logger.warn("login:failed", {
         event: "login.invalid-credentials",
         scope: "auth.session",
-        input: { email },
       })
 
       return http.error("Invalid email or password", {}, 401)
@@ -86,8 +86,8 @@ loginRoute.post(
     const refreshPayload = { id: row.id, email, exp: now + 60 * 60 * 24 * 14 }
 
     try {
-      const accessToken = await jwtSign(accessPayload, c.env.JWT_SECRET)
-      const refreshToken = await jwtSign(refreshPayload, c.env.JWT_SECRET)
+      const accessToken = await jwtSign(accessPayload, c.env.JWT_TOKEN)
+      const refreshToken = await jwtSign(refreshPayload, c.env.JWT_TOKEN)
       issueAuthCookies(c, accessToken, refreshToken)
 
       logger.info("login:success", {

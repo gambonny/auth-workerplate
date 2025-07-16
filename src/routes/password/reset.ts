@@ -32,7 +32,6 @@ passwordResetRoute.post(
     return c.var.responder.error("Invalid input")
   }),
   async (c): Promise<Response> => {
-    const logger = c.var.getLogger({ route: "auth.reset.handler" })
     const { token, password } = c.req.valid("json") as ResetPasswordPayload
     const http = c.var.responder
 
@@ -40,11 +39,15 @@ passwordResetRoute.post(
     const hashedToken = await sha256hex(token)
     const email = await verifyToken(c.env, hashedToken)
 
+    const logger = c.var.getLogger({
+      route: "auth.reset.handler",
+      ...(email ? { hashed_email: c.var.hash(email) } : {}),
+    })
+
     if (!email) {
       logger.warn("reset-token:expired", {
         event: "reset-token.expired",
         scope: "kv.reset-token",
-        input: { email }, //TODO: opaque these values
       })
 
       return http.error("Token has expired, please request a new one", {}, 410)

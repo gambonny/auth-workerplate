@@ -35,13 +35,15 @@ passwordForgotRoute.post(
   }),
   async (c): Promise<Response> => {
     const { email } = c.req.valid("json") as ForgotPasswordPayload
-    const logger = c.var.getLogger({ route: "auth.forgot.handler" })
     const http = c.var.responder
+    const logger = c.var.getLogger({
+      route: "auth.forgot.handler",
+      hashed_email: c.var.hash(email),
+    })
 
     logger.info("password:forgot:started", {
       event: "handler.started",
       scope: "auth.password",
-      input: { email },
     })
 
     // generate token + hash
@@ -53,7 +55,6 @@ passwordForgotRoute.post(
       logger.error("password:forgot:token-store-failed", {
         event: "kv.password.storing.failed",
         scope: "kv.password",
-        input: { email },
         issues,
       })
     })
@@ -69,7 +70,6 @@ passwordForgotRoute.post(
     logger.info("password:forgot:token-generated", {
       event: "token.generated",
       scope: "kv.password",
-      input: { email },
     })
 
     // send email
@@ -109,7 +109,6 @@ passwordForgotRoute.post(
       logger.error("password:forgot:email-send-failed", {
         event: "email.send.failed",
         scope: "auth.password",
-        input: { email },
         error: msg,
       })
       return http.error(

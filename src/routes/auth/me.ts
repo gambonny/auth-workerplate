@@ -29,6 +29,7 @@ meRoute.get(
         return http.error("token invalid", {}, 401)
       }
 
+      logger.debug("user:retrived:from:token")
       return http.success("token active", user)
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e)

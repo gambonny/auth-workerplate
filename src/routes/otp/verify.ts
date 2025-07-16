@@ -36,20 +36,22 @@ verifyOtpRoute.post(
   }),
   async (c): Promise<Response> => {
     const { email, otp } = c.req.valid("json") as OtpPayload
-    const logger = c.var.getLogger({ route: "otp.verify.handler" })
     const http = c.var.responder
+    const logger = c.var.getLogger({
+      route: "otp.verify.handler",
+      hashed_email: c.var.hash(email),
+    })
 
     logger.debug("otp:started", {
       event: "handler.started",
       scope: "handler.init",
-      input: { email },
     })
 
     const verified = await verifyOtp(c.env, email, otp, issues => {
       logger.warn("otp:verification:failed", {
         event: "otp.verification.failed",
         scope: "kv.otp",
-        input: { email, otp }, //TODO: opaque these values
+        input: { otp },
         issues,
       })
     })
@@ -67,8 +69,8 @@ verifyOtpRoute.post(
         logger.warn("user:get:failed", {
           event: "user.not.found",
           scope: "db.users",
-          input: { email, otp }, //TODO: opaque these values
         })
+
         return http.error("activation failed")
       }
 
