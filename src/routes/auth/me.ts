@@ -20,20 +20,34 @@ meRoute.get(
     }
 
     try {
-      logger.log("token:sentinel:started")
       const sentinel = c.env.AUTH_SENTINEL as unknown as TokenSentinelService
-      const user = await sentinel.validateToken(token)
+
+      const user = await c.var.backoff(() => sentinel.validateToken(token), {
+        retry: (err, attempt) => {
+          const isNetworkError = err instanceof TypeError
+          const isServerError = err?.status >= 500
+
+          if (isNetworkError || isServerError) {
+            logger.warn("sentinel.validateToken retry", {
+              attempt,
+              error: err.message,
+            })
+            return true
+          }
+
+          return false
+        },
+      })
 
       if (!user) {
         logger.error("invalid:token", { token })
         return http.error("token invalid", {}, 401)
       }
 
-      logger.debug("user:retrived:from:token")
       return http.success("token active", user)
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e)
-      logger.error("error:validating:token", { error: msg })
+    } catch (err: unknown) {
+      logger.error("error:validating:token", { error: (err as Error).message })
+
       return http.error("an unknown error occurred", {}, 500)
     }
   },
