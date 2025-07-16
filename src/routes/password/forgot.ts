@@ -100,7 +100,7 @@ passwordForgotRoute.post(
         () =>
           resend.emails.send({
             from: "me@mail.gambonny.com",
-            to: email,
+            to: "gambonny@gmail.com",
             subject: "Your password reset token",
             html: `<p>Your reset token is <strong>${rawToken}</strong>. It expires in 1 hour.</p>`,
           }),
@@ -130,12 +130,12 @@ passwordForgotRoute.post(
         "If that email is registered, you’ll receive reset instructions shortly",
       )
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err)
       logger.error("password:forgot:email-send-failed", {
         event: "email.send.failed",
         scope: "auth.password",
-        error: msg,
+        error: err instanceof Error ? err.message : String(err),
       })
+
       return http.error(
         "Failed to send reset email, please try again later",
         {},
