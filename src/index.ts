@@ -15,6 +15,7 @@ import { useLogger } from "@gambonny/cflo"
 import routes from "@/routes"
 import responderMiddleware from "@/middlewares/responder"
 import hasherMiddleware from "@/middlewares/hasher"
+import { backoffMiddleware } from "@/middlewares/backoff"
 // import traceparent from "@/middlewares/traceparent"
 import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "@types"
 
@@ -83,6 +84,15 @@ app.use(trimTrailingSlash())
 app.use(uaBlocker({ blocklist: aiBots }))
 app.use("/robots.txt", useAiRobotsTxt())
 
+app.use(
+  backoffMiddleware({
+    numOfAttempts: 5,
+    startingDelay: 200, // ms
+    maxDelay: 2000, // ms
+    jitter: "full",
+  }),
+)
+
 app.use(async (c, next) => {
   return useLogger({
     level: env.LOG_LEVEL,
@@ -100,6 +110,10 @@ app.route("/", routes)
 
 app.notFound(c => {
   return c.text("Not found", 404)
+})
+
+app.onError((_, c) => {
+  return c.var.responder.error("Internal error", {}, 500)
 })
 
 export default app

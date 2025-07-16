@@ -30,16 +30,10 @@ export async function storeOtp(
     return false
   }
 
-  try {
-    await env.OTP_STORE.put(otpKey(email), JSON.stringify(record), {
-      expiration:
-        Temporal.Now.instant().add({ hours: 1 }).epochMilliseconds / 1000,
-    })
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e)
-    onError?.({ kv: [msg] })
-    return false
-  }
+  await env.OTP_STORE.put(otpKey(email), JSON.stringify(record), {
+    expiration:
+      Temporal.Now.instant().add({ hours: 1 }).epochMilliseconds / 1000,
+  })
 
   return true
 }

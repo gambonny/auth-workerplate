@@ -47,16 +47,43 @@ verifyOtpRoute.post(
       scope: "handler.init",
     })
 
-    const verified = await verifyOtp(c.env, email, otp, issues => {
-      logger.warn("otp:verification:failed", {
+    try {
+      const verified = await c.var.backoff(
+        () =>
+          verifyOtp(c.env, email, otp, issues => {
+            logger.warn("otp:schema:failed", {
+              event: "otp.schema.failed",
+              scope: "otp.schema",
+              input: { otp },
+              issues,
+            })
+          }),
+        {
+          retry: (e, attempt) => {
+            logger.debug("otp:verification:attempt", {
+              input: otp,
+              attempt,
+              event: "otp.verification.attempt",
+              scope: "kv.otp.backoff.retry",
+              error: e instanceof Error ? e.message : String(e),
+            })
+
+            return true
+          },
+        },
+      )
+
+      if (!verified) return http.error("activation failed")
+    } catch (e: unknown) {
+      logger.error("otp:verification:failed", {
         event: "otp.verification.failed",
         scope: "kv.otp",
         input: { otp },
-        issues,
+        error: e instanceof Error ? e.message : String(e),
       })
-    })
 
-    if (!verified) return http.error("activation failed")
+      return http.error("activation failed")
+    }
 
     try {
       const user = await c.env.DB.prepare(
