@@ -4,7 +4,7 @@ import { backOff, type BackoffOptions } from "exponential-backoff"
 export function backoffMiddleware(defaultOptions: BackoffOptions) {
   return async (c: Context, next: Next) => {
     c.set(
-      "backOff",
+      "backoff",
       <T>(fn: () => Promise<T>, opts?: BackoffOptions): Promise<T> => {
         return backOff(fn, { ...defaultOptions, ...opts })
       },
