@@ -21,14 +21,14 @@ loginRoute.post(
     const validation = v.safeParse(loginPayloadSchema, body)
     if (validation.success) return validation.output
 
-    const logger = c.var.getLogger({ route: "auth.login.validator" })
-
-    logger.warn("login:validation:failed", {
-      event: "validation.failed",
-      scope: "validator.schema",
-      input: validation.output,
-      issues: v.flatten(validation.issues).nested,
-    })
+    c.var
+      .getLogger({ route: "auth.login.validator" })
+      .warn("login:validation:failed", {
+        event: "validation.failed",
+        scope: "validator.schema",
+        input: validation.output,
+        issues: v.flatten(validation.issues).nested,
+      })
 
     return c.var.responder.error("Invalid input")
   }),
@@ -45,7 +45,6 @@ loginRoute.post(
       scope: "auth.session",
     })
 
-    // 4) Fetch user by email
     const row = await c.env.DB.prepare(
       `SELECT id, password_hash, salt, active
          FROM users
@@ -59,7 +58,6 @@ loginRoute.post(
         active: number
       }>()
 
-    // 5) Check existence & activation
     if (!row || row.active !== 1) {
       logger.warn("email:not:found", {
         event: "email.not.found",
@@ -70,7 +68,6 @@ loginRoute.post(
       return http.error("Invalid email or password", {}, 401)
     }
 
-    // 6) Verify password
     const computed = await hashPassword(password, row.salt)
     if (computed !== row.password_hash) {
       logger.warn("login:failed", {
