@@ -16,7 +16,6 @@ import routes from "@/routes"
 import responderMiddleware from "@/middlewares/responder"
 import hasherMiddleware from "@/middlewares/hasher"
 import { backoffMiddleware } from "@/middlewares/backoff"
-// import traceparent from "@/middlewares/traceparent"
 import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "@types"
 
 export class SignupWorkflow extends WorkflowEntrypoint<
@@ -100,7 +99,7 @@ app.use(async (c, next) => {
     context: {
       appName: "auth-worker",
       deployId: env.CF_VERSION_METADATA.id,
-      thread: c.get("traceparent"),
+      traceparent: c.get("traceparent"),
     },
   })(c, next)
 })
