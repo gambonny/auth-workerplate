@@ -69,7 +69,6 @@ export class SignupWorkflow extends WorkflowEntrypoint<
 
 const app = new Hono<AppEnv>()
 
-app.use(traceparent)
 app.use(
   cors({
     origin: env.ALLOWED_ORIGINS.split(","),
@@ -81,6 +80,7 @@ app.use(responderMiddleware)
 app.use(trimTrailingSlash())
 app.use(uaBlocker({ blocklist: aiBots }))
 app.use("/robots.txt", useAiRobotsTxt())
+app.use(traceparent)
 
 app.use(
   backoffMiddleware({
