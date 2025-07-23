@@ -6,7 +6,7 @@ import type { AppEnv } from "@types"
 
 export const meRoute = new Hono<AppEnv>()
 
-meRoute.get(
+meRoute.post(
   "/me",
   timing({ totalDescription: "me-request" }),
   async (c): Promise<Response> => {
