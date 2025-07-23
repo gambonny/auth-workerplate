@@ -13,8 +13,7 @@ import responderMiddleware from "@/middlewares/responder"
 import hasherMiddleware from "@/middlewares/hasher"
 import { backoffMiddleware } from "@/middlewares/backoff"
 import type { AppEnv } from "@types"
-import traceparent from "./middlewares/traceparent"
-export { SignupWorkflow } from "./workflows/signup"
+import traceparent from "@/middlewares/traceparent"
 
 const app = new Hono<AppEnv>()
 
@@ -64,3 +63,4 @@ app.onError((_, c) => {
 })
 
 export default app
+export { SignupWorkflow } from "@/workflows/signup"
