@@ -72,6 +72,7 @@ const app = new Hono<AppEnv>()
 app.use(
   cors({
     origin: env.ALLOWED_ORIGINS.split(","),
+    allowHeaders: ["traceparent"],
     credentials: true,
   }),
 )
