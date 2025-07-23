@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { timing } from "hono/timing"
 import { getCookie } from "hono/cookie"
 
-import type { AppEnv, TokenSentinelService } from "@types"
+import type { AppEnv } from "@types"
 
 export const meRoute = new Hono<AppEnv>()
 
@@ -13,6 +13,7 @@ meRoute.get(
     const logger = c.var.getLogger({ route: "auth.me.handler" })
     const token = getCookie(c, "token")
     const http = c.var.responder
+    const sentinel = c.env.AUTH_SENTINEL
 
     if (!token) {
       logger.log("token:not:present")
@@ -20,8 +21,6 @@ meRoute.get(
     }
 
     try {
-      const sentinel = c.env.AUTH_SENTINEL as unknown as TokenSentinelService
-
       const user = await c.var.backoff(() => sentinel.validateToken(token), {
         retry: (err, attempt) => {
           const isNetworkError = err instanceof TypeError
