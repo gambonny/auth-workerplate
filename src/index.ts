@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { uaBlocker } from "@hono/ua-blocker"
 import { aiBots, useAiRobotsTxt } from "@hono/ua-blocker/ai-bots"
-// import { secureHeaders } from "hono/secure-headers"
+import { secureHeaders } from "hono/secure-headers"
 import { trimTrailingSlash } from "hono/trailing-slash"
 import { contextStorage } from "hono/context-storage"
 
@@ -73,13 +73,14 @@ const app = new Hono<AppEnv>()
 app.use(
   cors({
     origin: env.ALLOWED_ORIGINS.split(","),
+    allowHeaders: ["traceparent"],
     credentials: true,
   }),
 )
 app.use(traceparent)
 app.use(contextStorage())
 app.use(responderMiddleware)
-// app.use(secureHeaders())
+app.use(secureHeaders())
 app.use(trimTrailingSlash())
 app.use(uaBlocker({ blocklist: aiBots }))
 app.use("/robots.txt", useAiRobotsTxt())
