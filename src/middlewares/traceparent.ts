@@ -16,8 +16,9 @@ import { createMiddleware } from "hono/factory"
  * This middleware should run first, before logger setup or route handling.
  */
 const traceparent = createMiddleware(async (c, next) => {
-  c.header("Timing-Allow-Origin", "http://localhost:5173")
-  c.header("Timing-Allow-Origin", "http://localhost:4173")
+  c.env.ALLOWED_ORIGINS.split(",").map((origin: string) => {
+    c.header("Timing-Allow-Origin", origin)
+  })
 
   const traceparent = c.req.header("traceparent")
 

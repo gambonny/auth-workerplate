@@ -11,7 +11,8 @@
   },
   "vars": {
     "LOG_LEVEL": "info",
-    "LOG_FORMAT": "json"
+    "LOG_FORMAT": "json",
+    "ALLOWED_ORIGINS": "http://localhost:5173,http://localhost:4173"
   },
   "version_metadata": {
     "binding": "CF_VERSION_METADATA"

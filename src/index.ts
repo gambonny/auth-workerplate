@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { uaBlocker } from "@hono/ua-blocker"
 import { aiBots, useAiRobotsTxt } from "@hono/ua-blocker/ai-bots"
-import { secureHeaders } from "hono/secure-headers"
+// import { secureHeaders } from "hono/secure-headers"
 import { trimTrailingSlash } from "hono/trailing-slash"
 import { contextStorage } from "hono/context-storage"
 
@@ -17,6 +17,7 @@ import responderMiddleware from "@/middlewares/responder"
 import hasherMiddleware from "@/middlewares/hasher"
 import { backoffMiddleware } from "@/middlewares/backoff"
 import type { AppEnv, SignupWorkflowEnv, SignupWorkflowParams } from "@types"
+import traceparent from "./middlewares/traceparent"
 
 export class SignupWorkflow extends WorkflowEntrypoint<
   SignupWorkflowEnv,
@@ -71,14 +72,14 @@ const app = new Hono<AppEnv>()
 
 app.use(
   cors({
-    origin: ["http://localhost:4173", "http://localhost:5173"], // TODO: from config file
+    origin: env.ALLOWED_ORIGINS.split(","),
     credentials: true,
   }),
 )
-// app.use(traceparent)
+app.use(traceparent)
 app.use(contextStorage())
 app.use(responderMiddleware)
-app.use(secureHeaders())
+// app.use(secureHeaders())
 app.use(trimTrailingSlash())
 app.use(uaBlocker({ blocklist: aiBots }))
 app.use("/robots.txt", useAiRobotsTxt())
