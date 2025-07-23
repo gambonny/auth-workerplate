@@ -24,7 +24,7 @@ const traceparent = createMiddleware(async (c, next) => {
 
   if (!traceparent) {
     console.warn("request.rejected", {
-      reason: "missing_traceparent_id",
+      reason: "missing_traceparent",
       path: c.req.path,
       traceparent,
     })
