@@ -38,6 +38,7 @@
   ],
   "services" : [{
     "service": "auth-sentinel",
-    "binding": "AUTH_SENTINEL"
+    "binding": "AUTH_SENTINEL",
+    "entrypoint": "AuthSentinel"
   }]
 }
