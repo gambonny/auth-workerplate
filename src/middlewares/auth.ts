@@ -1,7 +1,7 @@
 import { getCookie } from "hono/cookie"
 import { createMiddleware } from "hono/factory"
 
-import type { AppEnv, TokenSentinelService } from "@types"
+import type { AppEnv } from "@types"
 
 const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
   if (!c.var.getLogger || !c.var.responder) {
@@ -22,8 +22,7 @@ const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
     return http.error("Unauthorized", {}, 401)
   }
 
-  const sentinel = c.env.AUTH_SENTINEL as unknown as TokenSentinelService
-  const isValid = await sentinel.validateToken(token)
+  const isValid = await c.env.AUTH_SENTINEL.validateToken(token)
 
   if (!isValid) {
     logger.warn("auth:invalid-token", {

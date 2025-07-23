@@ -13,7 +13,6 @@ meRoute.get(
     const logger = c.var.getLogger({ route: "auth.me.handler" })
     const token = getCookie(c, "token")
     const http = c.var.responder
-    const sentinel = c.env.AUTH_SENTINEL
 
     if (!token) {
       logger.log("token:not:present")
@@ -21,22 +20,25 @@ meRoute.get(
     }
 
     try {
-      const user = await c.var.backoff(() => sentinel.validateToken(token), {
-        retry: (err, attempt) => {
-          const isNetworkError = err instanceof TypeError
-          const isServerError = err?.status >= 500
+      const user = await c.var.backoff(
+        () => c.env.AUTH_SENTINEL.validateToken(token),
+        {
+          retry: (err, attempt) => {
+            const isNetworkError = err instanceof TypeError
+            const isServerError = err?.status >= 500
 
-          if (isNetworkError || isServerError) {
-            logger.warn("sentinel.validateToken retry", {
-              attempt,
-              error: err.message,
-            })
-            return true
-          }
+            if (isNetworkError || isServerError) {
+              logger.warn("sentinel.validateToken retry", {
+                attempt,
+                error: err.message,
+              })
+              return true
+            }
 
-          return false
+            return false
+          },
         },
-      })
+      )
 
       if (!user) {
         logger.error("invalid:token", { token })
